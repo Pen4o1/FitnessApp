@@ -1,4 +1,5 @@
 import { clearToken, getToken, setToken } from '@/lib/auth-storage';
+import type { FoodSearchResult } from '@/types/nutrition';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -99,4 +100,27 @@ export async function logout(): Promise<void> {
 
 export async function getUser(): Promise<User> {
   return apiFetch<User>('/api/user');
+}
+
+type FoodSearchResponse = {
+  data: FoodSearchResult[];
+};
+
+export async function searchFoods(
+  query: string,
+  options: { page?: number; perPage?: number } = {},
+): Promise<FoodSearchResult[]> {
+  const params = new URLSearchParams({ q: query.trim() });
+
+  if (options.page !== undefined) {
+    params.set('page', String(options.page));
+  }
+
+  if (options.perPage !== undefined) {
+    params.set('per_page', String(options.perPage));
+  }
+
+  const response = await apiFetch<FoodSearchResponse>(`/api/foods/search?${params.toString()}`);
+
+  return response.data;
 }

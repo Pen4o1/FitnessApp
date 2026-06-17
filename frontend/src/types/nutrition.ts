@@ -17,6 +17,19 @@ export type FoodLogItem = {
   serving_unit: string;
 };
 
+export type FoodSearchResult = {
+  external_food_id: string;
+  external_source: string;
+  food_name: string;
+  brand_name: string | null;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  serving_unit: string;
+  serving_description: string;
+};
+
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export type MealEntry = {
