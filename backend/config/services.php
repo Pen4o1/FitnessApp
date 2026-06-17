@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'fatsecret' => [
+        'client_id' => env('FATSECRET_CLIENT_ID'),
+        'client_secret' => env('FATSECRET_CLIENT_SECRET'),
+        'scope' => env('FATSECRET_SCOPE', 'premier'),
+        'region' => env('FATSECRET_REGION', 'US'),
+        'token_url' => 'https://oauth.fatsecret.com/connect/token',
+        'api_base_url' => 'https://platform.fatsecret.com/rest',
+    ],
+
 ];

@@ -1,0 +1,48 @@
+{
+  "foods_search": {
+    "max_results": "2",
+    "total_results": "220",
+    "page_number": "0",
+    "results": {
+      "food": [
+        {
+          "food_id": "1641",
+          "food_name": "Chicken Breast",
+          "food_type": "Generic",
+          "food_url": "https://foods.fatsecret.com/calories-nutrition/generic/chicken-breast",
+          "servings": {
+            "serving": {
+              "serving_id": "50321",
+              "serving_description": "100 g",
+              "metric_serving_amount": "100.000",
+              "metric_serving_unit": "g",
+              "calories": "195",
+              "carbohydrate": "0",
+              "protein": "29.55",
+              "fat": "7.57",
+              "is_default": "true"
+            }
+          }
+        },
+        {
+          "food_id": "9999",
+          "food_name": "Unknown Food",
+          "food_type": "Generic",
+          "food_url": "https://foods.fatsecret.com/calories-nutrition/generic/unknown-food",
+          "servings": {
+            "serving": {
+              "serving_id": "1",
+              "serving_description": "1 cup",
+              "metric_serving_unit": "ml",
+              "metric_serving_amount": "240.000",
+              "calories": "100",
+              "carbohydrate": "10",
+              "protein": "5",
+              "fat": "2"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
