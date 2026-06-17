@@ -59,6 +59,9 @@ class AuthController extends Controller
 
     public function user(Request $request): UserResource
     {
-        return new UserResource($request->user());
+        $user = $request->user();
+        $user->loadMissing('activeNutritionTarget');
+
+        return new UserResource($user);
     }
 }

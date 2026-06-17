@@ -1,5 +1,12 @@
 import { clearToken, getToken, setToken } from '@/lib/auth-storage';
 import type { DailySummary, FoodLogItem, FoodSearchResult, MealType } from '@/types/nutrition';
+import type {
+  ActivityLevel,
+  Gender,
+  GoalType,
+  UpdateProfilePayload,
+  UserNutritionTarget,
+} from '@/types/profile';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -8,8 +15,13 @@ export type User = {
   first_name: string;
   last_name: string;
   email: string;
+  gender: Gender | null;
+  birthdate: string | null;
+  current_weight_kg: number | null;
+  height_cm: number | null;
   profile_completed_at: string | null;
   email_verified_at: string | null;
+  nutrition_target: UserNutritionTarget | null;
 };
 
 export type AuthResponse = {
@@ -101,6 +113,15 @@ export async function logout(): Promise<void> {
 export async function getUser(): Promise<User> {
   return apiFetch<User>('/api/user');
 }
+
+export async function updateProfile(payload: UpdateProfilePayload): Promise<User> {
+  return apiFetch<User>('/api/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export type { ActivityLevel, Gender, GoalType, UpdateProfilePayload, UserNutritionTarget };
 
 type FoodSearchResponse = {
   data: FoodSearchResult[];

@@ -19,8 +19,13 @@ class UserResource extends JsonResource
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
             'email' => $this->email,
+            'gender' => $this->gender?->value,
+            'birthdate' => $this->birthdate?->toDateString(),
+            'current_weight_kg' => $this->current_weight_kg !== null ? (float) $this->current_weight_kg : null,
+            'height_cm' => $this->height_cm,
             'profile_completed_at' => $this->profile_completed_at,
             'email_verified_at' => $this->email_verified_at,
+            'nutrition_target' => new UserNutritionTargetResource($this->whenLoaded('activeNutritionTarget')),
         ];
     }
 }

@@ -6,7 +6,9 @@ import {
   login,
   logout,
   register,
+  updateProfile as updateProfileRequest,
   type RegisterPayload,
+  type UpdateProfilePayload,
   type User,
 } from '@/lib/api';
 import { clearToken, getToken } from '@/lib/auth-storage';
@@ -19,6 +21,8 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (payload: RegisterPayload) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<User>;
+  updateProfile: (payload: UpdateProfilePayload) => Promise<User>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -91,6 +95,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const currentUser = await getUser();
+    setUser(currentUser);
+    return currentUser;
+  }, []);
+
+  const updateProfile = useCallback(async (payload: UpdateProfilePayload) => {
+    const updatedUser = await updateProfileRequest(payload);
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -100,8 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      refreshUser,
+      updateProfile,
     }),
-    [user, token, isLoading, signIn, signUp, signOut],
+    [user, token, isLoading, signIn, signUp, signOut, refreshUser, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
