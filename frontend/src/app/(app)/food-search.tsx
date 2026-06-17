@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AddFoodSheet } from '@/components/food-search/add-food-sheet';
 import { FoodSearchResultRow } from '@/components/food-search/food-search-result-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -29,15 +30,24 @@ function isMealType(value: string | string[] | undefined): value is MealType {
   );
 }
 
+function todayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function FoodSearchScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { mealType: rawMealType } = useLocalSearchParams<{ mealType?: string; date?: string }>();
+  const { mealType: rawMealType, date: rawDate } = useLocalSearchParams<{
+    mealType?: string;
+    date?: string;
+  }>();
   const [query, setQuery] = useState('');
+  const [selectedFood, setSelectedFood] = useState<FoodSearchResult | null>(null);
   const { results, isLoading, error, hasQuery } = useFoodSearch(query);
 
   const mealType = isMealType(rawMealType) ? rawMealType : 'breakfast';
   const mealLabel = MEAL_TYPE_LABELS[mealType];
+  const logDate = typeof rawDate === 'string' && rawDate.length > 0 ? rawDate : todayDateString();
 
   function renderListEmpty() {
     if (!hasQuery) {
@@ -103,7 +113,9 @@ export default function FoodSearchScreen() {
             <FlatList
               data={results}
               keyExtractor={(item) => item.external_food_id}
-              renderItem={({ item }: { item: FoodSearchResult }) => <FoodSearchResultRow item={item} />}
+              renderItem={({ item }: { item: FoodSearchResult }) => (
+                <FoodSearchResultRow item={item} onPress={setSelectedFood} />
+              )}
               contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={renderListEmpty}
@@ -129,6 +141,18 @@ export default function FoodSearchScreen() {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </ThemedView>
+
+      <AddFoodSheet
+        visible={selectedFood !== null}
+        food={selectedFood}
+        mealType={mealType}
+        date={logDate}
+        onClose={() => setSelectedFood(null)}
+        onAdded={() => {
+          setSelectedFood(null);
+          router.back();
+        }}
+      />
     </>
   );
 }

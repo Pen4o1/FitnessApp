@@ -102,4 +102,21 @@ export function computeRemaining(targets: MacroTotals, consumed: MacroTotals): M
   };
 }
 
+export function scaleMacrosFrom100g(
+  calories: number,
+  protein_g: number,
+  carbs_g: number,
+  fat_g: number,
+  quantityGrams: number,
+): MacroTotals {
+  const factor = quantityGrams / 100;
+
+  return {
+    calories: Math.round(calories * factor),
+    protein_g: Math.round(protein_g * factor * 100) / 100,
+    carbs_g: Math.round(carbs_g * factor * 100) / 100,
+    fat_g: Math.round(fat_g * factor * 100) / 100,
+  };
+}
+
 export { computeTotals, emptyMeal, mealWithItems };

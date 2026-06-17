@@ -1,34 +1,46 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import type { FoodSearchResult } from '@/types/nutrition';
 
 type FoodSearchResultRowProps = {
   item: FoodSearchResult;
+  onPress: (item: FoodSearchResult) => void;
 };
 
-export function FoodSearchResultRow({ item }: FoodSearchResultRowProps) {
+export function FoodSearchResultRow({ item, onPress }: FoodSearchResultRowProps) {
+  const theme = useTheme();
+
   return (
-    <ThemedView type="backgroundElement" style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText type="smallBold" style={styles.name} numberOfLines={2}>
-          {item.food_name}
-        </ThemedText>
-        <ThemedText type="smallBold">{item.calories} kcal</ThemedText>
-      </View>
+    <Pressable
+      onPress={() => onPress(item)}
+      style={({ pressed }) => [pressed && styles.pressed]}>
+      <ThemedView type="backgroundElement" style={styles.container}>
+        <View style={styles.header}>
+          <ThemedText type="smallBold" style={styles.name} numberOfLines={2}>
+            {item.food_name}
+          </ThemedText>
+          <ThemedText type="smallBold">{item.calories} kcal</ThemedText>
+        </View>
 
-      {item.brand_name ? (
-        <ThemedText themeColor="textSecondary" type="small" numberOfLines={1}>
-          {item.brand_name}
-        </ThemedText>
-      ) : null}
+        {item.brand_name ? (
+          <ThemedText themeColor="textSecondary" type="small" numberOfLines={1}>
+            {item.brand_name}
+          </ThemedText>
+        ) : null}
 
-      <ThemedText themeColor="textSecondary" type="small">
-        Per {item.serving_description}: P {item.protein_g}g · C {item.carbs_g}g · F {item.fat_g}g
-      </ThemedText>
-    </ThemedView>
+        <ThemedText themeColor="textSecondary" type="small">
+          Per {item.serving_description}: P {item.protein_g}g · C {item.carbs_g}g · F {item.fat_g}g
+        </ThemedText>
+
+        <ThemedText style={[styles.addHint, { color: theme.accent }]} type="small">
+          Tap to add
+        </ThemedText>
+      </ThemedView>
+    </Pressable>
   );
 }
 
@@ -47,5 +59,11 @@ const styles = StyleSheet.create({
   name: {
     flex: 1,
     fontSize: 15,
+  },
+  addHint: {
+    marginTop: Spacing.one,
+  },
+  pressed: {
+    opacity: 0.85,
   },
 });

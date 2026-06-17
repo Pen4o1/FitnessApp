@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CalorieRing } from '@/components/dashboard/calorie-ring';
@@ -26,13 +28,45 @@ export function DashboardScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { user } = useAuth();
-  const { summary, isRefreshing, refresh } = useDailySummary();
+  const { summary, isLoading, isRefreshing, error, refresh } = useDailySummary();
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   function handleAddFood(mealType: MealType) {
+    if (!summary) {
+      return;
+    }
+
     router.push({
       pathname: '/(app)/food-search',
       params: { mealType, date: summary.date },
     });
+  }
+
+  if (isLoading && !summary) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.loadingState} edges={['top']}>
+          <ActivityIndicator color={theme.accent} size="large" />
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.loadingState} edges={['top']}>
+          <ThemedText themeColor="textSecondary" style={styles.errorText}>
+            {error ?? 'Could not load your daily summary.'}
+          </ThemedText>
+        </SafeAreaView>
+      </ThemedView>
+    );
   }
 
   return (
@@ -140,5 +174,15 @@ const styles = StyleSheet.create({
   },
   mealsTitle: {
     fontSize: 16,
+  },
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.four,
+  },
+  errorText: {
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

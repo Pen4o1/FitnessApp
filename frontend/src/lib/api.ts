@@ -1,5 +1,5 @@
 import { clearToken, getToken, setToken } from '@/lib/auth-storage';
-import type { FoodSearchResult } from '@/types/nutrition';
+import type { DailySummary, FoodLogItem, FoodSearchResult, MealType } from '@/types/nutrition';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -123,4 +123,31 @@ export async function searchFoods(
   const response = await apiFetch<FoodSearchResponse>(`/api/foods/search?${params.toString()}`);
 
   return response.data;
+}
+
+export type LogFoodPayload = {
+  date: string;
+  meal_type: MealType;
+  quantity: number;
+  external_food_id: string;
+  external_source: string;
+  food_name: string;
+  brand_name: string | null;
+  calories_per_100g: number;
+  protein_g_per_100g: number;
+  carbs_g_per_100g: number;
+  fat_g_per_100g: number;
+};
+
+export async function logFood(payload: LogFoodPayload): Promise<FoodLogItem> {
+  return apiFetch<FoodLogItem>('/api/foods/log', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getDailySummary(date?: string): Promise<DailySummary> {
+  const params = date ? `?date=${encodeURIComponent(date)}` : '';
+
+  return apiFetch<DailySummary>(`/api/daily-summary${params}`);
 }
