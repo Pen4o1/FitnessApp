@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BirthdatePicker } from '@/components/profile/birthdate-picker';
 import { OptionChipGroup } from '@/components/profile/option-chip-group';
 import { TargetPreviewCard } from '@/components/profile/target-preview-card';
 import { ThemedText } from '@/components/themed-text';
@@ -22,6 +23,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError } from '@/lib/api';
 import { calculateNutritionTarget } from '@/lib/nutrition-calculator';
+import { sanitizeDecimalInput, sanitizeIntegerInput } from '@/lib/profile-input';
 import {
   ACTIVITY_LEVEL_OPTIONS,
   GENDER_OPTIONS,
@@ -97,11 +99,15 @@ function buildPayload(form: ProfileFormState): UpdateProfilePayload | null {
 export function ProfileScreen() {
   const theme = useTheme();
   const { user, refreshUser, updateProfile, signOut } = useAuth();
-  const [form, setForm] = useState<ProfileFormState>(DEFAULT_FORM);
-  const [savedSnapshot, setSavedSnapshot] = useState<ProfileFormState>(DEFAULT_FORM);
+  const [form, setForm] = useState<ProfileFormState>(() =>
+    user ? formFromUser(user) : DEFAULT_FORM,
+  );
+  const [savedSnapshot, setSavedSnapshot] = useState<ProfileFormState>(() =>
+    user ? formFromUser(user) : DEFAULT_FORM,
+  );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !user);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -110,10 +116,18 @@ export function ProfileScreen() {
 
     try {
       const currentUser = await refreshUser();
+      if (hasChangesRef.current) {
+        return;
+      }
+
       const nextForm = formFromUser(currentUser);
       setForm(nextForm);
       setSavedSnapshot(nextForm);
     } catch {
+      if (hasChangesRef.current) {
+        return;
+      }
+
       if (user) {
         const nextForm = formFromUser(user);
         setForm(nextForm);
@@ -151,6 +165,7 @@ export function ProfileScreen() {
   );
 
   function updateField<K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]) {
+    hasChangesRef.current = true;
     setForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -170,6 +185,7 @@ export function ProfileScreen() {
       const nextForm = formFromUser(updatedUser);
       setForm(nextForm);
       setSavedSnapshot(nextForm);
+      hasChangesRef.current = false;
     } catch (err) {
       if (err instanceof ApiError) {
         setFieldErrors(err.errors);
@@ -242,14 +258,9 @@ export function ProfileScreen() {
               />
 
               <FieldGroup label="Birthdate" error={fieldErrors.birthdate?.[0]}>
-                <TextInput
-                  autoCapitalize="none"
-                  keyboardType="numbers-and-punctuation"
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={theme.textSecondary}
-                  style={[styles.input, { color: theme.text, borderColor: theme.backgroundSelected }]}
+                <BirthdatePicker
                   value={form.birthdate}
-                  onChangeText={(value) => updateField('birthdate', value)}
+                  onChange={(value) => updateField('birthdate', value)}
                 />
               </FieldGroup>
 
@@ -257,6 +268,7 @@ export function ProfileScreen() {
                 <View style={styles.halfField}>
                   <FieldGroup label="Weight (kg)" error={fieldErrors.current_weight_kg?.[0]}>
                     <TextInput
+                      inputMode="decimal"
                       keyboardType="decimal-pad"
                       placeholder="80"
                       placeholderTextColor={theme.textSecondary}
@@ -265,13 +277,16 @@ export function ProfileScreen() {
                         { color: theme.text, borderColor: theme.backgroundSelected },
                       ]}
                       value={form.current_weight_kg}
-                      onChangeText={(value) => updateField('current_weight_kg', value)}
+                      onChangeText={(value) =>
+                        updateField('current_weight_kg', sanitizeDecimalInput(value))
+                      }
                     />
                   </FieldGroup>
                 </View>
                 <View style={styles.halfField}>
                   <FieldGroup label="Height (cm)" error={fieldErrors.height_cm?.[0]}>
                     <TextInput
+                      inputMode="numeric"
                       keyboardType="number-pad"
                       placeholder="180"
                       placeholderTextColor={theme.textSecondary}
@@ -280,7 +295,9 @@ export function ProfileScreen() {
                         { color: theme.text, borderColor: theme.backgroundSelected },
                       ]}
                       value={form.height_cm}
-                      onChangeText={(value) => updateField('height_cm', value)}
+                      onChangeText={(value) =>
+                        updateField('height_cm', sanitizeIntegerInput(value))
+                      }
                     />
                   </FieldGroup>
                 </View>
@@ -301,12 +318,15 @@ export function ProfileScreen() {
 
               <FieldGroup label="Target weight (kg)" error={fieldErrors.target_weight_kg?.[0]}>
                 <TextInput
+                  inputMode="decimal"
                   keyboardType="decimal-pad"
                   placeholder="75"
                   placeholderTextColor={theme.textSecondary}
                   style={[styles.input, { color: theme.text, borderColor: theme.backgroundSelected }]}
                   value={form.target_weight_kg}
-                  onChangeText={(value) => updateField('target_weight_kg', value)}
+                  onChangeText={(value) =>
+                    updateField('target_weight_kg', sanitizeDecimalInput(value))
+                  }
                 />
               </FieldGroup>
 
@@ -445,6 +465,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     fontSize: 16,
+    minHeight: 44,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineWidth: 0,
+        }
+      : {}),
   },
   primaryButton: {
     alignItems: 'center',
