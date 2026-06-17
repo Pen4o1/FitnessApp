@@ -1,5 +1,6 @@
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Platform, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
@@ -8,6 +9,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth-context';
+import { useTheme } from '@/hooks/use-theme';
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -29,31 +32,59 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const theme = useTheme();
+  const { user, signOut } = useAuth();
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace('/(auth)/login');
+  }
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.heroSection}>
           <AnimatedIcon />
           <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+            Welcome{user ? `, ${user.first_name}` : ''}
           </ThemedText>
+          {user ? (
+            <ThemedText themeColor="textSecondary" style={styles.subtitle}>
+              Signed in as {user.email}
+            </ThemedText>
+          ) : null}
         </ThemedView>
 
         <ThemedText type="code" style={styles.code}>
-          get started
+          fitness app
         </ThemedText>
 
         <ThemedView type="backgroundElement" style={styles.stepContainer}>
           <HintRow
             title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
+            hint={<ThemedText type="code">src/app/(app)/index.tsx</ThemedText>}
           />
           <HintRow title="Dev tools" hint={getDevMenuHint()} />
           <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
+            title="Profile status"
+            hint={
+              <ThemedText type="code">
+                {user?.profile_completed_at ? 'complete' : 'incomplete'}
+              </ThemedText>
+            }
           />
         </ThemedView>
+
+        <Pressable
+          onPress={handleSignOut}
+          style={({ pressed }) => [
+            styles.logoutButton,
+            { backgroundColor: theme.backgroundSelected },
+            pressed && styles.pressed,
+          ]}>
+          <ThemedText type="smallBold">Sign out</ThemedText>
+        </Pressable>
 
         {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
@@ -85,6 +116,9 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
   },
+  subtitle: {
+    textAlign: 'center',
+  },
   code: {
     textTransform: 'uppercase',
   },
@@ -94,5 +128,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.four,
     borderRadius: Spacing.four,
+  },
+  logoutButton: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Spacing.three,
+    paddingVertical: Spacing.three,
+  },
+  pressed: {
+    opacity: 0.8,
   },
 });
