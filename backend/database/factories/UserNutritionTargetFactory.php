@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\ActivityLevel;
+use App\Enums\GoalPace;
 use App\Enums\GoalType;
 use App\Models\User;
 use App\Models\UserNutritionTarget;
@@ -24,6 +25,7 @@ class UserNutritionTargetFactory extends Factory
             'user_id' => User::factory(),
             'activity_level' => fake()->randomElement(ActivityLevel::cases()),
             'goal_type' => fake()->randomElement(GoalType::cases()),
+            'goal_pace' => fake()->randomElement(GoalPace::cases()),
             'target_weight_kg' => fake()->randomFloat(2, 60, 95),
             'calorie_target' => fake()->numberBetween(1600, 2800),
             'protein_target_g' => fake()->numberBetween(100, 200),

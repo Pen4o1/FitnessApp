@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ActivityLevel;
 use App\Enums\Gender;
+use App\Enums\GoalPace;
 use App\Enums\GoalType;
 use App\Models\User;
 use App\Models\UserNutritionTarget;
@@ -15,6 +16,7 @@ class NutritionTargetService
      * @param  array{
      *     activity_level: ActivityLevel,
      *     goal_type: GoalType,
+     *     goal_pace: GoalPace,
      *     target_weight_kg: float,
      *     current_weight_kg: float,
      *     height_cm: int,
@@ -33,6 +35,7 @@ class NutritionTargetService
         return $user->nutritionTargets()->create([
             'activity_level' => $inputs['activity_level'],
             'goal_type' => $inputs['goal_type'],
+            'goal_pace' => $inputs['goal_pace'],
             'target_weight_kg' => $inputs['target_weight_kg'],
             'calorie_target' => $computed['calorie_target'],
             'protein_target_g' => $computed['protein_target_g'],
@@ -50,6 +53,7 @@ class NutritionTargetService
      * @param  array{
      *     activity_level: ActivityLevel,
      *     goal_type: GoalType,
+     *     goal_pace: GoalPace,
      *     target_weight_kg: float,
      *     current_weight_kg: float,
      *     height_cm: int,
@@ -76,7 +80,9 @@ class NutritionTargetService
         );
 
         $tdee = (int) round($bmr * $inputs['activity_level']->multiplier());
-        $calorieTarget = (int) round($tdee * $inputs['goal_type']->calorieAdjustmentFactor());
+        $calorieTarget = (int) round(
+            $tdee * $inputs['goal_pace']->calorieAdjustmentFactor($inputs['goal_type']),
+        );
         $macros = $this->calculateMacros(
             $calorieTarget,
             $inputs['current_weight_kg'],

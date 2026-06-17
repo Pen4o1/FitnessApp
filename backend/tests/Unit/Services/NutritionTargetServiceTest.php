@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Enums\ActivityLevel;
 use App\Enums\Gender;
+use App\Enums\GoalPace;
 use App\Enums\GoalType;
 use App\Models\User;
 use App\Models\UserNutritionTarget;
@@ -32,6 +33,7 @@ class NutritionTargetServiceTest extends TestCase
         $result = $this->service->calculate([
             'activity_level' => ActivityLevel::ModeratelyActive,
             'goal_type' => GoalType::Lose,
+            'goal_pace' => GoalPace::Moderate,
             'target_weight_kg' => 75.0,
             'current_weight_kg' => 80.0,
             'height_cm' => 180,
@@ -53,6 +55,7 @@ class NutritionTargetServiceTest extends TestCase
         $result = $this->service->calculate([
             'activity_level' => ActivityLevel::ModeratelyActive,
             'goal_type' => GoalType::Maintain,
+            'goal_pace' => GoalPace::Moderate,
             'target_weight_kg' => 80.0,
             'current_weight_kg' => 80.0,
             'height_cm' => 180,
@@ -68,6 +71,7 @@ class NutritionTargetServiceTest extends TestCase
         $result = $this->service->calculate([
             'activity_level' => ActivityLevel::ModeratelyActive,
             'goal_type' => GoalType::Lose,
+            'goal_pace' => GoalPace::Moderate,
             'target_weight_kg' => 75.0,
             'current_weight_kg' => 80.0,
             'height_cm' => 180,
@@ -76,6 +80,26 @@ class NutritionTargetServiceTest extends TestCase
         ]);
 
         $this->assertGreaterThan(0, $result['estimated_days_to_goal']);
+    }
+
+    public function test_aggressive_lose_pace_lowers_calorie_target(): void
+    {
+        $inputs = [
+            'activity_level' => ActivityLevel::ModeratelyActive,
+            'goal_type' => GoalType::Lose,
+            'target_weight_kg' => 75.0,
+            'current_weight_kg' => 80.0,
+            'height_cm' => 180,
+            'birthdate' => Carbon::parse('1996-01-15'),
+            'gender' => Gender::Male,
+        ];
+
+        $moderate = $this->service->calculate([...$inputs, 'goal_pace' => GoalPace::Moderate]);
+        $aggressive = $this->service->calculate([...$inputs, 'goal_pace' => GoalPace::Aggressive]);
+
+        $this->assertSame(2207, $moderate['calorie_target']);
+        $this->assertSame(1931, $aggressive['calorie_target']);
+        $this->assertLessThan($moderate['estimated_days_to_goal'], $aggressive['estimated_days_to_goal']);
     }
 
     public function test_recalculate_and_save_deactivates_previous_target(): void
@@ -96,6 +120,7 @@ class NutritionTargetServiceTest extends TestCase
         $newTarget = $this->service->recalculateAndSave($user, [
             'activity_level' => ActivityLevel::ModeratelyActive,
             'goal_type' => GoalType::Lose,
+            'goal_pace' => GoalPace::Moderate,
             'target_weight_kg' => 75.0,
             'current_weight_kg' => 80.0,
             'height_cm' => 180,

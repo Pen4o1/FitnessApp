@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\ActivityLevel;
 use App\Enums\Gender;
+use App\Enums\GoalPace;
 use App\Enums\GoalType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,7 @@ class UpdateProfileRequest extends FormRequest
             'height_cm' => ['required', 'integer', 'min:100', 'max:250'],
             'activity_level' => ['required', Rule::enum(ActivityLevel::class)],
             'goal_type' => ['required', Rule::enum(GoalType::class)],
+            'goal_pace' => ['required', Rule::enum(GoalPace::class)],
             'target_weight_kg' => ['required', 'numeric', 'min:20', 'max:500'],
         ];
     }

@@ -3,6 +3,7 @@ import type { DailySummary, FoodLogItem, FoodSearchResult, MealType } from '@/ty
 import type {
   ActivityLevel,
   Gender,
+  GoalPace,
   GoalType,
   UpdateProfilePayload,
   UserNutritionTarget,
@@ -121,7 +122,7 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<User
   });
 }
 
-export type { ActivityLevel, Gender, GoalType, UpdateProfilePayload, UserNutritionTarget };
+export type { ActivityLevel, Gender, GoalPace, GoalType, UpdateProfilePayload, UserNutritionTarget };
 
 type FoodSearchResponse = {
   data: FoodSearchResult[];

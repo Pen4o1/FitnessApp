@@ -17,6 +17,7 @@ class UserNutritionTargetResource extends JsonResource
         return [
             'activity_level' => $this->activity_level->value,
             'goal_type' => $this->goal_type->value,
+            'goal_pace' => $this->goal_pace->value,
             'target_weight_kg' => (float) $this->target_weight_kg,
             'calorie_target' => $this->calorie_target,
             'protein_target_g' => $this->protein_target_g,

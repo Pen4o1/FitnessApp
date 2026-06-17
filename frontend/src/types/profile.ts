@@ -9,9 +9,12 @@ export type ActivityLevel =
 
 export type GoalType = 'lose' | 'maintain' | 'gain';
 
+export type GoalPace = 'slow' | 'moderate' | 'aggressive';
+
 export type UserNutritionTarget = {
   activity_level: ActivityLevel;
   goal_type: GoalType;
+  goal_pace: GoalPace;
   target_weight_kg: number;
   calorie_target: number;
   protein_target_g: number;
@@ -30,6 +33,7 @@ export type UpdateProfilePayload = {
   height_cm: number;
   activity_level: ActivityLevel;
   goal_type: GoalType;
+  goal_pace: GoalPace;
   target_weight_kg: number;
 };
 
@@ -62,4 +66,10 @@ export const GOAL_TYPE_OPTIONS: { value: GoalType; label: string }[] = [
   { value: 'lose', label: 'Lose weight' },
   { value: 'maintain', label: 'Maintain' },
   { value: 'gain', label: 'Build muscle' },
+];
+
+export const GOAL_PACE_OPTIONS: { value: GoalPace; label: string; description: string }[] = [
+  { value: 'slow', label: 'Slow', description: 'Gentle · ~0.25 kg/week' },
+  { value: 'moderate', label: 'Moderate', description: 'Steady · ~0.5 kg/week' },
+  { value: 'aggressive', label: 'Aggressive', description: 'Fast · ~1 kg/week' },
 ];

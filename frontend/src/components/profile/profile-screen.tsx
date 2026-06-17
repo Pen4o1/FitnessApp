@@ -27,9 +27,11 @@ import { sanitizeDecimalInput, sanitizeIntegerInput } from '@/lib/profile-input'
 import {
   ACTIVITY_LEVEL_OPTIONS,
   GENDER_OPTIONS,
+  GOAL_PACE_OPTIONS,
   GOAL_TYPE_OPTIONS,
   type ActivityLevel,
   type Gender,
+  type GoalPace,
   type GoalType,
   type UpdateProfilePayload,
 } from '@/types/profile';
@@ -41,6 +43,7 @@ type ProfileFormState = {
   height_cm: string;
   activity_level: ActivityLevel;
   goal_type: GoalType;
+  goal_pace: GoalPace;
   target_weight_kg: string;
 };
 
@@ -51,6 +54,7 @@ const DEFAULT_FORM: ProfileFormState = {
   height_cm: '',
   activity_level: 'moderately_active',
   goal_type: 'lose',
+  goal_pace: 'moderate',
   target_weight_kg: '',
 };
 
@@ -62,6 +66,7 @@ function formFromUser(user: NonNullable<ReturnType<typeof useAuth>['user']>): Pr
     height_cm: user.height_cm !== null ? String(user.height_cm) : '',
     activity_level: user.nutrition_target?.activity_level ?? 'moderately_active',
     goal_type: user.nutrition_target?.goal_type ?? 'lose',
+    goal_pace: user.nutrition_target?.goal_pace ?? 'moderate',
     target_weight_kg:
       user.nutrition_target?.target_weight_kg !== undefined
         ? String(user.nutrition_target.target_weight_kg)
@@ -92,6 +97,7 @@ function buildPayload(form: ProfileFormState): UpdateProfilePayload | null {
     height_cm: Math.round(heightCm),
     activity_level: form.activity_level,
     goal_type: form.goal_type,
+    goal_pace: form.goal_type === 'maintain' ? 'moderate' : form.goal_pace,
     target_weight_kg: targetWeight,
   };
 }
@@ -166,7 +172,15 @@ export function ProfileScreen() {
 
   function updateField<K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]) {
     hasChangesRef.current = true;
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      const next = { ...current, [key]: value };
+
+      if (key === 'goal_type' && value === 'maintain') {
+        next.goal_pace = 'moderate';
+      }
+
+      return next;
+    });
   }
 
   async function handleSave() {
@@ -315,6 +329,15 @@ export function ProfileScreen() {
                 options={GOAL_TYPE_OPTIONS}
                 onChange={(value) => updateField('goal_type', value)}
               />
+
+              {form.goal_type !== 'maintain' ? (
+                <OptionChipGroup
+                  label="Goal pace"
+                  value={form.goal_pace}
+                  options={GOAL_PACE_OPTIONS}
+                  onChange={(value) => updateField('goal_pace', value)}
+                />
+              ) : null}
 
               <FieldGroup label="Target weight (kg)" error={fieldErrors.target_weight_kg?.[0]}>
                 <TextInput

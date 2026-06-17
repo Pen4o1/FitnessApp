@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ActivityLevel;
+use App\Enums\GoalPace;
 use App\Enums\GoalType;
 use Database\Factories\UserNutritionTargetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'activity_level',
     'goal_type',
+    'goal_pace',
     'target_weight_kg',
     'calorie_target',
     'protein_target_g',
@@ -43,6 +45,7 @@ class UserNutritionTarget extends Model
         return [
             'activity_level' => ActivityLevel::class,
             'goal_type' => GoalType::class,
+            'goal_pace' => GoalPace::class,
             'target_weight_kg' => 'decimal:2',
             'is_active' => 'boolean',
             'effective_from' => 'datetime',

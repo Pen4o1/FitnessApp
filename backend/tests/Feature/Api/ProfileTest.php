@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Enums\ActivityLevel;
 use App\Enums\Gender;
+use App\Enums\GoalPace;
 use App\Enums\GoalType;
 use App\Enums\WeightLogSource;
 use App\Models\User;
@@ -27,6 +28,7 @@ class ProfileTest extends TestCase
             'height_cm' => 180,
             'activity_level' => ActivityLevel::ModeratelyActive->value,
             'goal_type' => GoalType::Lose->value,
+            'goal_pace' => GoalPace::Moderate->value,
             'target_weight_kg' => 75.0,
         ], $overrides);
     }
@@ -50,6 +52,7 @@ class ProfileTest extends TestCase
                 'height_cm' => 50,
                 'activity_level' => 'invalid',
                 'goal_type' => 'invalid',
+                'goal_pace' => 'invalid',
                 'target_weight_kg' => 10,
             ]);
 
@@ -61,6 +64,7 @@ class ProfileTest extends TestCase
                 'height_cm',
                 'activity_level',
                 'goal_type',
+                'goal_pace',
                 'target_weight_kg',
             ]);
     }
@@ -83,6 +87,7 @@ class ProfileTest extends TestCase
                 'nutrition_target' => [
                     'activity_level',
                     'goal_type',
+                    'goal_pace',
                     'target_weight_kg',
                     'calorie_target',
                     'protein_target_g',
@@ -114,6 +119,7 @@ class ProfileTest extends TestCase
             'user_id' => $user->id,
             'activity_level' => ActivityLevel::ModeratelyActive->value,
             'goal_type' => GoalType::Lose->value,
+            'goal_pace' => GoalPace::Moderate->value,
             'calorie_target' => 2207,
             'is_active' => true,
         ]);

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ActivityLevel;
 use App\Enums\Gender;
+use App\Enums\GoalPace;
 use App\Enums\GoalType;
 use App\Enums\WeightLogSource;
 use App\Models\BodyWeightLog;
@@ -25,6 +26,7 @@ class ProfileService
      *     height_cm: int,
      *     activity_level: string,
      *     goal_type: string,
+     *     goal_pace: string,
      *     target_weight_kg: float,
      * }  $data
      */
@@ -53,6 +55,7 @@ class ProfileService
             $this->nutritionTargetService->recalculateAndSave($user, [
                 'activity_level' => ActivityLevel::from($data['activity_level']),
                 'goal_type' => GoalType::from($data['goal_type']),
+                'goal_pace' => GoalPace::from($data['goal_pace']),
                 'target_weight_kg' => (float) $data['target_weight_kg'],
                 'current_weight_kg' => (float) $data['current_weight_kg'],
                 'height_cm' => (int) $data['height_cm'],

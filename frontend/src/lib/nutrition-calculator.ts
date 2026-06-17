@@ -2,6 +2,7 @@ import type {
   ActivityLevel,
   CalculatedNutritionTarget,
   Gender,
+  GoalPace,
   GoalType,
   UpdateProfilePayload,
 } from '@/types/profile';
@@ -14,11 +15,29 @@ const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   extra_active: 1.9,
 };
 
-const GOAL_CALORIE_FACTORS: Record<GoalType, number> = {
-  lose: 0.8,
-  maintain: 1.0,
-  gain: 1.2,
+const GOAL_PACE_FACTORS: Record<GoalPace, number> = {
+  slow: 0.9,
+  moderate: 0.8,
+  aggressive: 0.7,
 };
+
+const GOAL_PACE_GAIN_FACTORS: Record<GoalPace, number> = {
+  slow: 1.1,
+  moderate: 1.2,
+  aggressive: 1.3,
+};
+
+function calorieAdjustmentFactor(goalType: GoalType, goalPace: GoalPace): number {
+  if (goalType === 'maintain') {
+    return 1.0;
+  }
+
+  if (goalType === 'lose') {
+    return GOAL_PACE_FACTORS[goalPace];
+  }
+
+  return GOAL_PACE_GAIN_FACTORS[goalPace];
+}
 
 const PROTEIN_PER_KG: Record<GoalType, number> = {
   lose: 1.8,
@@ -113,6 +132,7 @@ export function calculateNutritionTarget(
     | 'height_cm'
     | 'activity_level'
     | 'goal_type'
+    | 'goal_pace'
     | 'target_weight_kg'
   >,
 ): CalculatedNutritionTarget | null {
@@ -133,7 +153,9 @@ export function calculateNutritionTarget(
 
   const bmr = calculateBmr(weightKg, heightCm, age, payload.gender);
   const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[payload.activity_level]);
-  const calorieTarget = Math.round(tdee * GOAL_CALORIE_FACTORS[payload.goal_type]);
+  const calorieTarget = Math.round(
+    tdee * calorieAdjustmentFactor(payload.goal_type, payload.goal_pace),
+  );
   const macros = calculateMacros(calorieTarget, weightKg, payload.goal_type);
 
   return {
