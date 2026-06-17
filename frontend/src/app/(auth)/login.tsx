@@ -34,7 +34,7 @@ export default function LoginScreen() {
 
     try {
       await signIn(email.trim(), password);
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)');
     } catch (err) {
       if (err instanceof ApiError) {
         setFieldErrors(err.errors);

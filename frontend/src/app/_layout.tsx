@@ -26,7 +26,7 @@ function RootNavigator() {
     }
 
     if (isAuthenticated && inAuthGroup) {
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)');
     }
   }, [isAuthenticated, isLoading, router, segments]);
 

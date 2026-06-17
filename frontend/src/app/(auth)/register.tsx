@@ -44,7 +44,7 @@ export default function RegisterScreen() {
         password,
         password_confirmation: passwordConfirmation,
       });
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)');
     } catch (err) {
       if (err instanceof ApiError) {
         setFieldErrors(err.errors);
