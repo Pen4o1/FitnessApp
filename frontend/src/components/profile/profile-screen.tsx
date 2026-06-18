@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BirthdatePicker } from '@/components/profile/birthdate-picker';
+import { DietaryPreferencesSection } from '@/components/profile/dietary-preferences-section';
 import { OptionChipGroup } from '@/components/profile/option-chip-group';
 import { TargetPreviewCard } from '@/components/profile/target-preview-card';
 import { ThemedText } from '@/components/themed-text';
@@ -360,6 +361,8 @@ export function ProfileScreen() {
                 onChange={(value) => updateField('activity_level', value)}
               />
             </ThemedView>
+
+            <DietaryPreferencesSection />
 
             {error ? (
               <ThemedText type="small" style={styles.errorText}>

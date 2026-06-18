@@ -1,4 +1,5 @@
 import { clearToken, getToken, setToken } from '@/lib/auth-storage';
+import type { UserPreferences } from '@/types/dietary';
 import type { DailySummary, FoodLogItem, FoodSearchResult, MealType } from '@/types/nutrition';
 import type {
   ActivityLevel,
@@ -131,6 +132,19 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<User
     body: JSON.stringify(payload),
   });
 }
+
+export async function getUserPreferences(): Promise<UserPreferences> {
+  return apiFetch<UserPreferences>('/api/user/preferences');
+}
+
+export async function updateUserPreferences(payload: UserPreferences): Promise<UserPreferences> {
+  return apiFetch<UserPreferences>('/api/user/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export type { UserPreferences };
 
 export type { ActivityLevel, Gender, GoalPace, GoalType, UpdateProfilePayload, UserNutritionTarget };
 

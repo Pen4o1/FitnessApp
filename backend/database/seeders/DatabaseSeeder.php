@@ -3,7 +3,8 @@
 namespace Database\Seeders;
 
 use App\Enums\ActivityLevel;
-use App\Enums\DietType;
+use App\Enums\AllergyRestriction;
+use App\Enums\DietaryPreference;
 use App\Enums\FoodExternalSource;
 use App\Enums\GoalType;
 use App\Enums\MealType;
@@ -54,11 +55,8 @@ class DatabaseSeeder extends Seeder
         UserDietaryPreference::factory()->create([
             'user_id' => $user->id,
             'preferences' => [
-                'diet_type' => DietType::Omnivore->value,
-                'allergies' => ['peanuts'],
-                'intolerances' => ['lactose'],
-                'excluded_ingredients' => [],
-                'custom_notes' => null,
+                'dietary_preferences' => [DietaryPreference::Vegetarian->value],
+                'allergies' => [AllergyRestriction::NutFree->value],
             ],
         ]);
 
