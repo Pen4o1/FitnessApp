@@ -9,7 +9,17 @@ import type {
   UserNutritionTarget,
 } from '@/types/profile';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_URL = normalizeApiUrl(process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000');
+
+function normalizeApiUrl(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, '');
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `http://${trimmed}`;
+}
 
 export type User = {
   id: number;
