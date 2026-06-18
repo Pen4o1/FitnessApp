@@ -11,22 +11,24 @@ export const DIETARY_PREFERENCE_OPTIONS: {
   value: DietaryPreference;
   label: string;
   description: string;
+  icon: { ios: any; android: any; web: any };
 }[] = [
-  { value: 'vegan', label: 'Vegan', description: 'No animal products' },
-  { value: 'vegetarian', label: 'Vegetarian', description: 'No meat or fish' },
-  { value: 'keto', label: 'Keto', description: 'Low carb, high fat' },
-  { value: 'paleo', label: 'Paleo', description: 'Whole foods, no grains' },
+  { value: 'vegan', label: 'Vegan', description: 'No animal products', icon: { ios: 'leaf.fill', android: 'eco', web: 'eco' } },
+  { value: 'vegetarian', label: 'Vegetarian', description: 'No meat or fish', icon: { ios: 'leaf', android: 'eco', web: 'eco' } },
+  { value: 'keto', label: 'Keto', description: 'Low carb, high fat', icon: { ios: 'flame.fill', android: 'local_fire_department', web: 'local_fire_department' } },
+  { value: 'paleo', label: 'Paleo', description: 'Whole foods, no grains', icon: { ios: 'hare.fill', android: 'pets', web: 'pets' } },
 ];
 
 export const ALLERGY_OPTIONS: {
   value: AllergyRestriction;
   label: string;
   description: string;
+  icon: { ios: any; android: any; web: any };
 }[] = [
-  { value: 'gluten_free', label: 'Gluten-Free', description: 'Avoid wheat and gluten' },
-  { value: 'nut_free', label: 'Nut-Free', description: 'Avoid tree nuts and peanuts' },
-  { value: 'dairy_free', label: 'Dairy-Free', description: 'Avoid milk and dairy' },
-  { value: 'soy_free', label: 'Soy-Free', description: 'Avoid soy products' },
+  { value: 'gluten_free', label: 'Gluten-Free', description: 'Avoid wheat and gluten', icon: { ios: 'allergens', android: 'grain', web: 'grain' } },
+  { value: 'nut_free', label: 'Nut-Free', description: 'Avoid tree nuts and peanuts', icon: { ios: 'allergens', android: 'spa', web: 'spa' } },
+  { value: 'dairy_free', label: 'Dairy-Free', description: 'Avoid milk and dairy', icon: { ios: 'drop.fill', android: 'water_drop', web: 'water_drop' } },
+  { value: 'soy_free', label: 'Soy-Free', description: 'Avoid soy products', icon: { ios: 'allergens', android: 'eco', web: 'eco' } },
 ];
 
 export const EMPTY_USER_PREFERENCES: UserPreferences = {

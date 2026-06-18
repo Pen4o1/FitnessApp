@@ -156,6 +156,7 @@ export function DietaryPreferencesSection() {
           <PreferenceToggleCard
             key={option.value}
             description={option.description}
+            icon={option.icon}
             label={option.label}
             value={selections.dietary_preferences.includes(option.value)}
             onChange={(enabled) => toggleDietaryPreference(option.value, enabled)}
@@ -175,6 +176,7 @@ export function DietaryPreferencesSection() {
           <PreferenceToggleCard
             key={option.value}
             description={option.description}
+            icon={option.icon}
             label={option.label}
             value={selections.allergies.includes(option.value)}
             onChange={(enabled) => toggleAllergy(option.value, enabled)}
