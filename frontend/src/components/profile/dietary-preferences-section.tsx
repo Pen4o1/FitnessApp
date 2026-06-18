@@ -12,6 +12,7 @@ import {
   ALLERGY_OPTIONS,
   DIETARY_PREFERENCE_OPTIONS,
   EMPTY_USER_PREFERENCES,
+  sanitizeUserPreferences,
   type AllergyRestriction,
   type DietaryPreference,
   type UserPreferences,
@@ -57,7 +58,7 @@ export function DietaryPreferencesSection() {
     setError(null);
 
     try {
-      const preferences = await getUserPreferences();
+      const preferences = sanitizeUserPreferences(await getUserPreferences());
       if (hasChangesRef.current) {
         return;
       }
@@ -111,7 +112,8 @@ export function DietaryPreferencesSection() {
     setIsSubmitting(true);
 
     try {
-      const savedPreferences = await updateUserPreferences(selections);
+      const payload = sanitizeUserPreferences(selections);
+      const savedPreferences = sanitizeUserPreferences(await updateUserPreferences(payload));
       setSelections(savedPreferences);
       setSavedSnapshot(savedPreferences);
       hasChangesRef.current = false;

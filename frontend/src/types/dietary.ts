@@ -33,3 +33,19 @@ export const EMPTY_USER_PREFERENCES: UserPreferences = {
   dietary_preferences: [],
   allergies: [],
 };
+
+const VALID_DIETARY_PREFERENCES = new Set(
+  DIETARY_PREFERENCE_OPTIONS.map((option) => option.value),
+);
+const VALID_ALLERGIES = new Set(ALLERGY_OPTIONS.map((option) => option.value));
+
+export function sanitizeUserPreferences(preferences: Partial<UserPreferences> | null | undefined): UserPreferences {
+  return {
+    dietary_preferences: (preferences?.dietary_preferences ?? []).filter((value): value is DietaryPreference =>
+      VALID_DIETARY_PREFERENCES.has(value as DietaryPreference),
+    ),
+    allergies: (preferences?.allergies ?? []).filter((value): value is AllergyRestriction =>
+      VALID_ALLERGIES.has(value as AllergyRestriction),
+    ),
+  };
+}

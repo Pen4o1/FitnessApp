@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\AllergyRestriction;
 use App\Enums\DietaryPreference;
+use App\Support\UserPreferencesNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,8 +18,14 @@ class UpdateUserPreferencesRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'dietary_preferences' => $this->input('dietary_preferences', []),
-            'allergies' => $this->input('allergies', []),
+            'dietary_preferences' => UserPreferencesNormalizer::normalizeEnumArray(
+                $this->input('dietary_preferences', []),
+                DietaryPreference::class,
+            ),
+            'allergies' => UserPreferencesNormalizer::normalizeEnumArray(
+                $this->input('allergies', []),
+                AllergyRestriction::class,
+            ),
         ]);
     }
 

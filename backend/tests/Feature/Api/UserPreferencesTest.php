@@ -41,7 +41,7 @@ class UserPreferencesTest extends TestCase
             ]);
     }
 
-    public function test_update_fails_with_invalid_values(): void
+    public function test_update_strips_invalid_values(): void
     {
         $user = User::factory()->create();
 
@@ -51,8 +51,11 @@ class UserPreferencesTest extends TestCase
                 'allergies' => ['also_invalid'],
             ]);
 
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['dietary_preferences.0', 'allergies.0']);
+        $response->assertOk()
+            ->assertJson([
+                'dietary_preferences' => [],
+                'allergies' => [],
+            ]);
     }
 
     public function test_user_can_update_preferences(): void
@@ -107,6 +110,44 @@ class UserPreferencesTest extends TestCase
         $response->assertOk()
             ->assertJson([
                 'dietary_preferences' => ['vegan'],
+                'allergies' => [],
+            ]);
+    }
+
+    public function test_legacy_allergy_values_are_ignored_on_update(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->putJson('/api/user/preferences', [
+                'dietary_preferences' => [],
+                'allergies' => ['peanuts', 'gluten_free'],
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'dietary_preferences' => [],
+                'allergies' => ['gluten_free'],
+            ]);
+    }
+
+    public function test_get_strips_legacy_allergy_values(): void
+    {
+        $user = User::factory()->create();
+
+        UserDietaryPreference::factory()->create([
+            'user_id' => $user->id,
+            'preferences' => [
+                'dietary_preferences' => [],
+                'allergies' => ['peanuts', 'lactose'],
+            ],
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/preferences');
+
+        $response->assertOk()
+            ->assertJson([
+                'dietary_preferences' => [],
                 'allergies' => [],
             ]);
     }

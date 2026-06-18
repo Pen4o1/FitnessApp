@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\AllergyRestriction;
+use App\Enums\DietaryPreference;
 use App\Models\User;
 use App\Models\UserDietaryPreference;
+use App\Support\UserPreferencesNormalizer;
 
 class UserPreferencesService
 {
@@ -24,8 +27,14 @@ class UserPreferencesService
         $preferences = $record->preferences;
 
         return [
-            'dietary_preferences' => $preferences['dietary_preferences'] ?? [],
-            'allergies' => $preferences['allergies'] ?? [],
+            'dietary_preferences' => UserPreferencesNormalizer::normalizeEnumArray(
+                $preferences['dietary_preferences'] ?? [],
+                DietaryPreference::class,
+            ),
+            'allergies' => UserPreferencesNormalizer::normalizeEnumArray(
+                $preferences['allergies'] ?? [],
+                AllergyRestriction::class,
+            ),
         ];
     }
 
