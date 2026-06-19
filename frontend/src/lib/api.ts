@@ -1,5 +1,6 @@
 import { clearToken, getToken, setToken } from '@/lib/auth-storage';
 import type { UserPreferences } from '@/types/dietary';
+import type { WeeklyDaySummary } from '@/types/analytics';
 import type { DailySummary, FoodLogItem, FoodSearchResult, MealType } from '@/types/nutrition';
 import type {
   ActivityLevel,
@@ -197,3 +198,15 @@ export async function getDailySummary(date?: string): Promise<DailySummary> {
 
   return apiFetch<DailySummary>(`/api/daily-summary${params}`);
 }
+
+type WeeklyAnalyticsResponse = {
+  days: WeeklyDaySummary[];
+};
+
+export async function getWeeklyAnalytics(): Promise<WeeklyDaySummary[]> {
+  const response = await apiFetch<WeeklyAnalyticsResponse>('/api/analytics/weekly');
+
+  return response.days;
+}
+
+export type { WeeklyDaySummary };

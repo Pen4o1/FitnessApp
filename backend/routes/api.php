@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DailyLogController;
 use App\Http\Controllers\Api\FoodController;
@@ -19,4 +20,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/foods/search', [FoodController::class, 'search']);
     Route::post('/foods/log', [FoodController::class, 'store']);
     Route::get('/daily-summary', [DailyLogController::class, 'show']);
+    Route::get('/analytics/weekly', [AnalyticsController::class, 'getWeeklySummary']);
 });

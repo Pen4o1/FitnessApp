@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CalorieRing } from '@/components/dashboard/calorie-ring';
@@ -78,12 +78,25 @@ export function DashboardScreen() {
             <RefreshControl refreshing={isRefreshing} onRefresh={refresh} tintColor={theme.accent} />
           }>
           <View style={styles.header}>
-            <ThemedText type="subtitle" style={styles.greeting}>
-              Hello{user ? `, ${user.first_name}` : ''}
-            </ThemedText>
-            <ThemedText themeColor="textSecondary" style={styles.date}>
-              {formatHeaderDate(summary.date)}
-            </ThemedText>
+            <View style={styles.headerTopRow}>
+              <View style={styles.headerText}>
+                <ThemedText type="subtitle" style={styles.greeting}>
+                  Hello{user ? `, ${user.first_name}` : ''}
+                </ThemedText>
+                <ThemedText themeColor="textSecondary" style={styles.date}>
+                  {formatHeaderDate(summary.date)}
+                </ThemedText>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="View weekly analytics"
+                onPress={() => router.push('/(app)/analytics')}
+                style={({ pressed }) => [styles.analyticsLink, pressed && styles.analyticsLinkPressed]}>
+                <ThemedText style={[styles.analyticsLinkText, { color: theme.success }]}>
+                  Analytics
+                </ThemedText>
+              </Pressable>
+            </View>
           </View>
 
           <ThemedView type="backgroundElement" style={styles.summaryCard}>
@@ -151,6 +164,28 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: Spacing.one,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  headerText: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  analyticsLink: {
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.two,
+    borderRadius: Spacing.two,
+  },
+  analyticsLinkPressed: {
+    opacity: 0.7,
+  },
+  analyticsLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   greeting: {
     fontSize: 28,

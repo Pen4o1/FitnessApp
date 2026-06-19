@@ -11,6 +11,13 @@ export default function AppLayout() {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen
+        name="analytics"
+        options={{
+          title: 'Analytics',
+          headerBackTitle: 'Back',
+        }}
+      />
     </Stack>
   );
 }
