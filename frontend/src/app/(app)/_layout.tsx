@@ -18,6 +18,13 @@ export default function AppLayout() {
           headerBackTitle: 'Back',
         }}
       />
+      <Stack.Screen
+        name="meal-planner"
+        options={{
+          title: 'Meal Planner',
+          headerBackTitle: 'Back',
+        }}
+      />
     </Stack>
   );
 }

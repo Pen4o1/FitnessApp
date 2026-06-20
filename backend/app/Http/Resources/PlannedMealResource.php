@@ -15,10 +15,12 @@ class PlannedMealResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'meal_number' => $this->resource['meal_number'],
             'meal_type' => $this->resource['meal_type'],
             'title' => $this->resource['title'],
+            'target' => $this->resource['target'],
             'totals' => $this->resource['totals'],
-            'items' => PlannedFoodItemResource::collection($this->resource['items']),
+            'dishes' => PlannedFoodItemResource::collection($this->resource['dishes']),
         ];
     }
 }

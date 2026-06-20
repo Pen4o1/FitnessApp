@@ -17,33 +17,30 @@ class MealPlannerService
     private const SEARCH_RESULTS_PER_QUERY = 10;
 
     /**
-     * @var array<string, list<string>>
+     * @var list<string>
      */
-    private const MEAL_SEARCH_QUERIES = [
-        MealType::Breakfast->value => ['oatmeal', 'eggs', 'yogurt'],
-        MealType::Lunch->value => ['chicken salad', 'rice bowl', 'sandwich'],
-        MealType::Dinner->value => ['salmon', 'chicken breast', 'stir fry'],
-        MealType::Snack->value => ['almonds', 'apple', 'protein bar'],
+    private const SEARCH_QUERY_POOL = [
+        'oatmeal',
+        'eggs',
+        'yogurt',
+        'chicken salad',
+        'rice bowl',
+        'sandwich',
+        'salmon',
+        'chicken breast',
+        'stir fry',
+        'almonds',
+        'apple',
+        'protein bar',
+        'tofu',
+        'quinoa',
+        'avocado',
+        'greek yogurt',
+        'turkey',
+        'broccoli',
     ];
 
-    /**
-     * @var array<string, float>
-     */
-    private const CALORIE_SPLIT_WITH_SNACK = [
-        MealType::Breakfast->value => 0.25,
-        MealType::Lunch->value => 0.35,
-        MealType::Dinner->value => 0.30,
-        MealType::Snack->value => 0.10,
-    ];
-
-    /**
-     * @var array<string, float>
-     */
-    private const CALORIE_SPLIT_WITHOUT_SNACK = [
-        MealType::Breakfast->value => 0.25,
-        MealType::Lunch->value => 0.35,
-        MealType::Dinner->value => 0.40,
-    ];
+    private const MAX_DISHES_PER_MEAL = 4;
 
     public function __construct(
         private readonly FoodService $foodService,
@@ -54,6 +51,7 @@ class MealPlannerService
     /**
      * @return array{
      *     date: string,
+     *     meals_count: int,
      *     targets: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},
      *     totals: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},
      *     within_target: bool,
@@ -61,15 +59,19 @@ class MealPlannerService
      *     dietary_preferences: list<string>,
      *     allergies: list<string>,
      *     meals: list<array{
+     *         meal_number: int,
      *         meal_type: string,
      *         title: string,
+     *         target: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},
      *         totals: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},
-     *         items: list<array<string, mixed>>
+     *         dishes: list<array<string, mixed>>
      *     }>
      * }|null
      */
-    public function generateDailyPlan(User $user, bool $includeSnack = true): ?array
+    public function generateDailyPlan(User $user, int $mealsCount = 4): ?array
     {
+        $mealsCount = max(2, min(6, $mealsCount));
+
         $user->loadMissing(['activeNutritionTarget', 'dietaryPreferences']);
 
         $target = $user->activeNutritionTarget;
@@ -89,22 +91,26 @@ class MealPlannerService
         $dietaryPreferences = $preferences['dietary_preferences'];
         $allergies = $preferences['allergies'];
 
-        $mealTypes = $this->mealTypesForPlan($includeSnack);
-        $calorieSplit = $includeSnack ? self::CALORIE_SPLIT_WITH_SNACK : self::CALORIE_SPLIT_WITHOUT_SNACK;
+        $mealSlots = $this->mealSlotsForCount($mealsCount);
+        $share = 1.0 / $mealsCount;
 
-        $candidatesByMeal = $this->fetchCandidatesByMeal($mealTypes, $dietaryPreferences, $allergies);
+        $candidatesBySlot = $this->fetchCandidatesBySlot($mealSlots, $dietaryPreferences, $allergies);
 
         $meals = [];
 
-        foreach ($mealTypes as $mealType) {
-            $share = $calorieSplit[$mealType->value];
+        foreach ($mealSlots as $slot) {
             $mealTargets = $this->scaleTargets($targets, $share);
-            $candidates = $candidatesByMeal[$mealType->value] ?? [];
+            $candidates = $candidatesBySlot[$slot['index']] ?? [];
 
-            $meals[] = $this->buildMeal($mealType, $mealTargets, $candidates);
+            $meals[] = $this->buildMeal(
+                $slot['meal_type'],
+                $slot['meal_number'],
+                $mealTargets,
+                $candidates,
+            );
         }
 
-        $this->adjustLastMealForDailyMargin($meals, $targets, $includeSnack);
+        $this->adjustLastMealForDailyMargin($meals, $targets);
 
         $totals = $this->sumMealTotals($meals);
         $variance = $this->calculateVariance($totals, $targets);
@@ -112,6 +118,7 @@ class MealPlannerService
 
         return [
             'date' => Carbon::today()->toDateString(),
+            'meals_count' => $mealsCount,
             'targets' => $targets,
             'totals' => $totals,
             'within_target' => $withinTarget,
@@ -123,40 +130,69 @@ class MealPlannerService
     }
 
     /**
-     * @return list<MealType>
+     * @return list<array{index: int, meal_number: int, meal_type: MealType}>
      */
-    private function mealTypesForPlan(bool $includeSnack): array
+    private function mealSlotsForCount(int $mealsCount): array
     {
-        $types = [MealType::Breakfast, MealType::Lunch, MealType::Dinner];
+        $mealTypes = $this->mealTypesForCount($mealsCount);
+        $slots = [];
 
-        if ($includeSnack) {
-            $types[] = MealType::Snack;
+        foreach ($mealTypes as $index => $mealType) {
+            $slots[] = [
+                'index' => $index,
+                'meal_number' => $index + 1,
+                'meal_type' => $mealType,
+            ];
         }
 
-        return $types;
+        return $slots;
     }
 
     /**
-     * @param  list<MealType>  $mealTypes
+     * @return list<MealType>
+     */
+    private function mealTypesForCount(int $mealsCount): array
+    {
+        return match ($mealsCount) {
+            2 => [MealType::Breakfast, MealType::Dinner],
+            3 => [MealType::Breakfast, MealType::Lunch, MealType::Dinner],
+            4 => [MealType::Breakfast, MealType::Lunch, MealType::Dinner, MealType::Snack],
+            5 => [MealType::Breakfast, MealType::Lunch, MealType::Dinner, MealType::Snack, MealType::Other],
+            default => [
+                MealType::Breakfast,
+                MealType::Lunch,
+                MealType::Dinner,
+                MealType::Snack,
+                MealType::Other,
+                MealType::Other,
+            ],
+        };
+    }
+
+    /**
+     * @param  list<array{index: int, meal_number: int, meal_type: MealType}>  $mealSlots
      * @param  list<string>  $dietaryPreferences
      * @param  list<string>  $allergies
-     * @return array<string, list<array<string, mixed>>>
+     * @return array<int, list<array<string, mixed>>>
      */
-    private function fetchCandidatesByMeal(array $mealTypes, array $dietaryPreferences, array $allergies): array
+    private function fetchCandidatesBySlot(array $mealSlots, array $dietaryPreferences, array $allergies): array
     {
-        $candidatesByMeal = [];
+        $candidatesBySlot = [];
         $totalCandidates = 0;
+        $poolSize = count(self::SEARCH_QUERY_POOL);
 
-        foreach ($mealTypes as $mealType) {
-            $queries = self::MEAL_SEARCH_QUERIES[$mealType->value];
+        foreach ($mealSlots as $slot) {
             $mealCandidates = [];
             $seenIds = [];
+            $queriesPerSlot = 3;
 
-            foreach ($queries as $baseQuery) {
+            for ($queryOffset = 0; $queryOffset < $queriesPerSlot; $queryOffset++) {
                 if ($totalCandidates >= self::MAX_CANDIDATE_POOL) {
                     break;
                 }
 
+                $poolIndex = ($slot['index'] * $queriesPerSlot + $queryOffset) % $poolSize;
+                $baseQuery = self::SEARCH_QUERY_POOL[$poolIndex];
                 $query = $this->buildSearchQuery($baseQuery, $dietaryPreferences);
                 $results = $this->foodService->search($query, 0, self::SEARCH_RESULTS_PER_QUERY);
 
@@ -181,10 +217,10 @@ class MealPlannerService
                 }
             }
 
-            $candidatesByMeal[$mealType->value] = $mealCandidates;
+            $candidatesBySlot[$slot['index']] = $mealCandidates;
         }
 
-        return $candidatesByMeal;
+        return $candidatesBySlot;
     }
 
     /**
@@ -243,32 +279,78 @@ class MealPlannerService
      * @param  array{calories: int, protein_g: float, carbs_g: float, fat_g: float}  $mealTargets
      * @param  list<array<string, mixed>>  $candidates
      * @return array{
+     *     meal_number: int,
      *     meal_type: string,
      *     title: string,
+     *     target: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},
      *     totals: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},
-     *     items: list<array<string, mixed>>
+     *     dishes: list<array<string, mixed>>
      * }
      */
-    private function buildMeal(MealType $mealType, array $mealTargets, array $candidates): array
+    private function buildMeal(MealType $mealType, int $mealNumber, array $mealTargets, array $candidates): array
     {
-        $food = $this->pickBestCandidate($candidates, $mealTargets);
-
-        if ($food === null) {
-            return $this->buildFallbackMeal($mealType, $mealTargets);
+        if ($candidates === []) {
+            return $this->buildFallbackMeal($mealType, $mealNumber, $mealTargets);
         }
 
-        $item = $this->scaleFoodToTarget($food, $mealTargets['calories']);
+        $dishes = [];
+        $usedIds = [];
+        $maxDishes = min(self::MAX_DISHES_PER_MEAL, count($candidates));
+
+        for ($attempt = 0; $attempt < $maxDishes; $attempt++) {
+            $currentTotals = $this->sumDishTotals($dishes);
+
+            if ($dishes !== [] && $this->withinMargin($currentTotals['calories'], $mealTargets['calories'])) {
+                break;
+            }
+
+            $remainingCalories = $mealTargets['calories'] - $currentTotals['calories'];
+
+            if ($remainingCalories <= 0 && $dishes !== []) {
+                $this->scaleDishesToCalorieTarget($dishes, $mealTargets['calories']);
+                break;
+            }
+
+            $pool = array_values(array_filter(
+                $candidates,
+                fn (array $candidate): bool => ! in_array($candidate['external_food_id'], $usedIds, true),
+            ));
+
+            $dishTargets = $this->scaleTargets(
+                $mealTargets,
+                max($remainingCalories, 1) / max($mealTargets['calories'], 1),
+            );
+
+            $food = $this->pickBestCandidate($pool, $dishTargets);
+
+            if ($food === null) {
+                break;
+            }
+
+            $usedIds[] = $food['external_food_id'];
+            $dishes[] = $this->scaleFoodToTarget($food, max(1, $remainingCalories));
+        }
+
+        if ($dishes === []) {
+            return $this->buildFallbackMeal($mealType, $mealNumber, $mealTargets);
+        }
+
+        if (! $this->withinMargin($this->sumDishTotals($dishes)['calories'], $mealTargets['calories'])) {
+            $this->scaleDishesToCalorieTarget($dishes, $mealTargets['calories']);
+        }
+
+        $totals = $this->sumDishTotals($dishes);
+        $title = count($dishes) === 1
+            ? $dishes[0]['food_name']
+            : 'Meal '.$mealNumber;
 
         return [
+            'meal_number' => $mealNumber,
             'meal_type' => $mealType->value,
-            'title' => $food['food_name'].' '.$this->mealLabel($mealType),
-            'totals' => [
-                'calories' => $item['calories'],
-                'protein_g' => $item['protein_g'],
-                'carbs_g' => $item['carbs_g'],
-                'fat_g' => $item['fat_g'],
-            ],
-            'items' => [$item],
+            'title' => $title,
+            'target' => $mealTargets,
+            'totals' => $totals,
+            'dishes' => $dishes,
         ];
     }
 
@@ -308,27 +390,53 @@ class MealPlannerService
 
     /**
      * @return array{
+     *     meal_number: int,
      *     meal_type: string,
      *     title: string,
+     *     target: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},
      *     totals: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},
-     *     items: list<array<string, mixed>>
+     *     dishes: list<array<string, mixed>>
      * }
      */
-    private function buildFallbackMeal(MealType $mealType, array $mealTargets): array
+    private function buildFallbackMeal(MealType $mealType, int $mealNumber, array $mealTargets): array
     {
-        $label = $this->mealLabel($mealType);
-
         return [
+            'meal_number' => $mealNumber,
             'meal_type' => $mealType->value,
-            'title' => $label,
+            'title' => 'Meal '.$mealNumber,
+            'target' => $mealTargets,
             'totals' => [
                 'calories' => 0,
                 'protein_g' => 0.0,
                 'carbs_g' => 0.0,
                 'fat_g' => 0.0,
             ],
-            'items' => [],
+            'dishes' => [],
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $dishes
+     */
+    private function scaleDishesToCalorieTarget(array &$dishes, int $targetCalories): void
+    {
+        $currentTotals = $this->sumDishTotals($dishes);
+
+        if ($currentTotals['calories'] <= 0) {
+            return;
+        }
+
+        $scaleFactor = $targetCalories / $currentTotals['calories'];
+
+        foreach ($dishes as &$dish) {
+            $dish['quantity'] = round((float) $dish['quantity'] * $scaleFactor, 1);
+            $dish['calories'] = (int) round((int) $dish['calories'] * $scaleFactor);
+            $dish['protein_g'] = round((float) $dish['protein_g'] * $scaleFactor, 2);
+            $dish['carbs_g'] = round((float) $dish['carbs_g'] * $scaleFactor, 2);
+            $dish['fat_g'] = round((float) $dish['fat_g'] * $scaleFactor, 2);
+        }
+
+        unset($dish);
     }
 
     /**
@@ -378,10 +486,10 @@ class MealPlannerService
     }
 
     /**
-     * @param  list<array{meal_type: string, title: string, totals: array{calories: int, protein_g: float, carbs_g: float, fat_g: float}, items: list<array<string, mixed>>}>  $meals
+     * @param  list<array{meal_number: int, meal_type: string, title: string, target: array{calories: int, protein_g: float, carbs_g: float, fat_g: float}, totals: array{calories: int, protein_g: float, carbs_g: float, fat_g: float}, dishes: list<array<string, mixed>>}>  $meals
      * @param  array{calories: int, protein_g: float, carbs_g: float, fat_g: float}  $targets
      */
-    private function adjustLastMealForDailyMargin(array &$meals, array $targets, bool $includeSnack): void
+    private function adjustLastMealForDailyMargin(array &$meals, array $targets): void
     {
         if ($meals === []) {
             return;
@@ -390,7 +498,7 @@ class MealPlannerService
         $lastIndex = count($meals) - 1;
         $lastMeal = &$meals[$lastIndex];
 
-        if ($lastMeal['items'] === []) {
+        if ($lastMeal['dishes'] === []) {
             return;
         }
 
@@ -403,35 +511,43 @@ class MealPlannerService
         $otherCalories = $totals['calories'] - $lastMeal['totals']['calories'];
         $desiredLastMealCalories = $targets['calories'] - $otherCalories;
 
-        if ($desiredLastMealCalories <= 0) {
+        if ($desiredLastMealCalories <= 0 || $lastMeal['totals']['calories'] <= 0) {
             return;
         }
 
-        $item = &$lastMeal['items'][0];
-        $baseQuantity = (float) $item['base_quantity'];
-        $currentCalories = (int) $item['calories'];
-
-        if ($currentCalories <= 0) {
-            return;
-        }
-
-        $scaleFactor = $desiredLastMealCalories / $currentCalories;
-        $item['quantity'] = round((float) $item['quantity'] * $scaleFactor, 1);
-        $item['calories'] = (int) round($currentCalories * $scaleFactor);
-        $item['protein_g'] = round((float) $item['protein_g'] * $scaleFactor, 2);
-        $item['carbs_g'] = round((float) $item['carbs_g'] * $scaleFactor, 2);
-        $item['fat_g'] = round((float) $item['fat_g'] * $scaleFactor, 2);
-
-        $lastMeal['totals'] = [
-            'calories' => $item['calories'],
-            'protein_g' => $item['protein_g'],
-            'carbs_g' => $item['carbs_g'],
-            'fat_g' => $item['fat_g'],
-        ];
+        $this->scaleDishesToCalorieTarget($lastMeal['dishes'], $desiredLastMealCalories);
+        $lastMeal['totals'] = $this->sumDishTotals($lastMeal['dishes']);
     }
 
     /**
-     * @param  list<array{meal_type: string, title: string, totals: array{calories: int, protein_g: float, carbs_g: float, fat_g: float}, items: list<array<string, mixed>>}>  $meals
+     * @param  list<array<string, mixed>>  $dishes
+     * @return array{calories: int, protein_g: float, carbs_g: float, fat_g: float}
+     */
+    private function sumDishTotals(array $dishes): array
+    {
+        $totals = [
+            'calories' => 0,
+            'protein_g' => 0.0,
+            'carbs_g' => 0.0,
+            'fat_g' => 0.0,
+        ];
+
+        foreach ($dishes as $dish) {
+            $totals['calories'] += (int) $dish['calories'];
+            $totals['protein_g'] += (float) $dish['protein_g'];
+            $totals['carbs_g'] += (float) $dish['carbs_g'];
+            $totals['fat_g'] += (float) $dish['fat_g'];
+        }
+
+        $totals['protein_g'] = round($totals['protein_g'], 2);
+        $totals['carbs_g'] = round($totals['carbs_g'], 2);
+        $totals['fat_g'] = round($totals['fat_g'], 2);
+
+        return $totals;
+    }
+
+    /**
+     * @param  list<array{meal_number: int, meal_type: string, title: string, target: array{calories: int, protein_g: float, carbs_g: float, fat_g: float}, totals: array{calories: int, protein_g: float, carbs_g: float, fat_g: float}, dishes: list<array<string, mixed>>}>  $meals
      * @return array{calories: int, protein_g: float, carbs_g: float, fat_g: float}
      */
     private function sumMealTotals(array $meals): array
@@ -500,16 +616,5 @@ class MealPlannerService
         }
 
         return abs($actual - $target) <= $target * self::MARGIN;
-    }
-
-    private function mealLabel(MealType $mealType): string
-    {
-        return match ($mealType) {
-            MealType::Breakfast => 'Breakfast',
-            MealType::Lunch => 'Lunch',
-            MealType::Dinner => 'Dinner',
-            MealType::Snack => 'Snack',
-            MealType::Other => 'Meal',
-        };
     }
 }

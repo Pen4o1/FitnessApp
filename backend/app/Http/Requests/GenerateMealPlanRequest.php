@@ -30,6 +30,7 @@ class GenerateMealPlanRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'meals_count' => ['sometimes', 'integer', 'min:2', 'max:6'],
             'include_snack' => ['sometimes', 'boolean'],
         ];
     }

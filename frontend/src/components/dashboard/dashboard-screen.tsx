@@ -148,15 +148,31 @@ export function DashboardScreen() {
                   </Pressable>
                 ) : null}
               </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="View weekly analytics"
-                onPress={() => router.push('/(app)/analytics')}
-                style={({ pressed }) => [styles.analyticsLink, pressed && styles.analyticsLinkPressed]}>
-                <ThemedText style={[styles.analyticsLinkText, { color: theme.success }]}>
-                  Analytics
-                </ThemedText>
-              </Pressable>
+              <View style={styles.headerActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open AI meal planner"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(app)/meal-planner',
+                      params: { date: selectedDate },
+                    })
+                  }
+                  style={({ pressed }) => [styles.headerLink, pressed && styles.headerLinkPressed]}>
+                  <ThemedText style={[styles.mealPlannerLinkText, { color: theme.neonGreen }]}>
+                    Meal Plan
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="View weekly analytics"
+                  onPress={() => router.push('/(app)/analytics')}
+                  style={({ pressed }) => [styles.headerLink, pressed && styles.headerLinkPressed]}>
+                  <ThemedText style={[styles.analyticsLinkText, { color: theme.success }]}>
+                    Analytics
+                  </ThemedText>
+                </Pressable>
+              </View>
             </View>
           </View>
 
@@ -236,13 +252,22 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.one,
   },
-  analyticsLink: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
+  headerLink: {
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.two,
     borderRadius: Spacing.two,
   },
-  analyticsLinkPressed: {
+  headerLinkPressed: {
     opacity: 0.7,
+  },
+  mealPlannerLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   analyticsLinkText: {
     fontSize: 14,

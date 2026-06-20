@@ -22,9 +22,11 @@ class MealPlannerController extends Controller
         $user = $request->user();
 
         try {
+            $mealsCount = (int) $request->input('meals_count', 4);
+
             $plan = $this->mealPlannerService->generateDailyPlan(
                 $user,
-                $request->boolean('include_snack', true),
+                $mealsCount,
             );
         } catch (FatSecretApiException) {
             return response()->json([

@@ -16,6 +16,7 @@ class MealPlanResource extends JsonResource
     {
         return [
             'date' => $this->resource['date'],
+            'meals_count' => $this->resource['meals_count'],
             'targets' => $this->resource['targets'],
             'totals' => $this->resource['totals'],
             'within_target' => $this->resource['within_target'],

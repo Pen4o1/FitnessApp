@@ -1,6 +1,7 @@
 import { clearToken, getToken, setToken } from '@/lib/auth-storage';
 import type { UserPreferences } from '@/types/dietary';
 import type { WeeklyDaySummary } from '@/types/analytics';
+import type { MealPlan } from '@/types/meal-plan';
 import type { DailySummary, FoodLogItem, FoodSearchResult, MealType } from '@/types/nutrition';
 import type {
   ActivityLevel,
@@ -194,6 +195,23 @@ export async function logFood(payload: LogFoodPayload): Promise<FoodLogItem> {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function generateMealPlan(options?: {
+  includeSnack?: boolean;
+  mealsCount?: number;
+}): Promise<MealPlan> {
+  const params = new URLSearchParams();
+
+  if (options?.mealsCount !== undefined) {
+    params.set('meals_count', String(options.mealsCount));
+  } else if (options?.includeSnack === false) {
+    params.set('include_snack', 'false');
+  }
+
+  const query = params.toString() ? `?${params.toString()}` : '';
+
+  return apiFetch<MealPlan>(`/api/meal-planner/generate${query}`);
 }
 
 export async function getDailySummary(date?: string): Promise<DailySummary> {

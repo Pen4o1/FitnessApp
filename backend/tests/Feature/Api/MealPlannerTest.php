@@ -76,10 +76,12 @@ class MealPlannerTest extends TestCase
                 'allergies',
                 'meals' => [
                     '*' => [
+                        'meal_number',
                         'meal_type',
                         'title',
+                        'target' => ['calories', 'protein_g', 'carbs_g', 'fat_g'],
                         'totals' => ['calories', 'protein_g', 'carbs_g', 'fat_g'],
-                        'items' => [
+                        'dishes' => [
                             '*' => [
                                 'external_food_id',
                                 'external_source',
@@ -103,7 +105,7 @@ class MealPlannerTest extends TestCase
         $this->assertLessThanOrEqual($margin, abs($totalCalories - $targetCalories));
     }
 
-    public function test_generate_without_snack_returns_three_meals(): void
+    public function test_generate_with_meals_count_returns_requested_meals(): void
     {
         $this->fakeFatSecretResponses();
 
@@ -115,7 +117,28 @@ class MealPlannerTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->getJson('/api/meal-planner/generate?include_snack=false');
+        $response = $this->getJson('/api/meal-planner/generate?meals_count=5');
+
+        $response->assertOk()
+            ->assertJsonPath('meals_count', 5)
+            ->assertJsonCount(5, 'meals')
+            ->assertJsonPath('meals.0.meal_number', 1)
+            ->assertJsonPath('meals.4.meal_number', 5);
+    }
+
+    public function test_generate_with_three_meals_count_returns_three_meals(): void
+    {
+        $this->fakeFatSecretResponses();
+
+        $user = User::factory()->create();
+        UserNutritionTarget::factory()->create([
+            'user_id' => $user->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/meal-planner/generate?meals_count=3');
 
         $response->assertOk()
             ->assertJsonCount(3, 'meals')
@@ -170,7 +193,7 @@ class MealPlannerTest extends TestCase
         $response->assertOk();
 
         $foodNames = collect($response->json('meals'))
-            ->flatMap(fn (array $meal): array => collect($meal['items'])->pluck('food_name')->all())
+            ->flatMap(fn (array $meal): array => collect($meal['dishes'])->pluck('food_name')->all())
             ->all();
 
         foreach ($foodNames as $foodName) {
@@ -179,6 +202,41 @@ class MealPlannerTest extends TestCase
                 "Expected nut-free plan to exclude peanut foods, got: {$foodName}",
             );
         }
+    }
+
+    public function test_generate_rejects_invalid_meals_count(): void
+    {
+        $user = User::factory()->create();
+        UserNutritionTarget::factory()->create([
+            'user_id' => $user->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/meal-planner/generate?meals_count=7');
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['meals_count']);
+    }
+
+    public function test_each_meal_includes_per_meal_target_calories(): void
+    {
+        $this->fakeFatSecretResponses();
+
+        $user = User::factory()->create();
+        UserNutritionTarget::factory()->create([
+            'user_id' => $user->id,
+            'calorie_target' => 2400,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/meal-planner/generate?meals_count=4');
+
+        $response->assertOk()
+            ->assertJsonPath('meals.0.target.calories', 600);
     }
 
     private function fakeFatSecretResponses(): void
