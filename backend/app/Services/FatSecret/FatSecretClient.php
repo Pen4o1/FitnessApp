@@ -4,6 +4,7 @@ namespace App\Services\FatSecret;
 
 use App\Exceptions\FatSecretApiException;
 use App\Exceptions\FatSecretFoodNotFoundException;
+use App\Support\BarcodeRegionResolver;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -12,6 +13,10 @@ class FatSecretClient
     private const TOKEN_CACHE_KEY = 'fatsecret_access_token';
 
     private const TOKEN_EXPIRY_BUFFER_SECONDS = 60;
+
+    public function __construct(
+        private readonly BarcodeRegionResolver $barcodeRegionResolver,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -49,6 +54,25 @@ class FatSecretClient
      */
     public function findFoodByBarcode(string $barcode): array
     {
+        $regions = $this->barcodeRegionResolver->regionsForBarcode($barcode);
+        $lastNotFound = null;
+
+        foreach ($regions as $region) {
+            try {
+                return $this->findFoodByBarcodeInRegion($barcode, $region);
+            } catch (FatSecretFoodNotFoundException $exception) {
+                $lastNotFound = $exception;
+            }
+        }
+
+        throw $lastNotFound ?? new FatSecretFoodNotFoundException('No food item detected for barcode.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function findFoodByBarcodeInRegion(string $barcode, string $region): array
+    {
         $response = Http::withToken($this->getAccessToken())
             ->acceptJson()
             ->get($this->apiUrl('food/barcode/find-by-id/v2'), [
@@ -56,7 +80,7 @@ class FatSecretClient
                 'format' => 'json',
                 'flag_default_serving' => 'true',
                 'include_food_attributes' => 'true',
-                'region' => config('services.fatsecret.region'),
+                'region' => $region,
             ]);
 
         $payload = $response->json();

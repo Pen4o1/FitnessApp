@@ -22,7 +22,8 @@ class FoodBarcodeScanTest extends TestCase
             'services.fatsecret.client_id' => 'test-client-id',
             'services.fatsecret.client_secret' => 'test-client-secret',
             'services.fatsecret.scope' => 'premier',
-            'services.fatsecret.region' => 'US',
+            'services.fatsecret.region' => 'BG',
+            'services.fatsecret.barcode_regions' => ['BG', 'DE', 'US'],
         ]);
 
         Cache::flush();
@@ -92,6 +93,67 @@ class FoodBarcodeScanTest extends TestCase
     }
 
     public function test_scan_returns_not_found_when_fatsecret_reports_no_food(): void
+    {
+        Http::fake([
+            'oauth.fatsecret.com/connect/token' => Http::response([
+                'access_token' => 'test-token',
+                'expires_in' => 3600,
+            ], 200),
+            'platform.fatsecret.com/rest/food/barcode/find-by-id/v2*' => Http::response([
+                'error' => [
+                    'code' => 211,
+                    'message' => 'No food item detected',
+                ],
+            ], 200),
+        ]);
+
+        Sanctum::actingAs(User::factory()->create());
+
+        $response = $this->getJson('/api/food/scan?barcode=0041570054161');
+
+        $response->assertNotFound()
+            ->assertJsonPath('message', 'No product found for this barcode.');
+    }
+
+    public function test_scan_tries_next_barcode_region_when_earlier_regions_return_not_found(): void
+    {
+        $barcodeResponse = json_decode(
+            file_get_contents(base_path('tests/Fixtures/fatsecret/barcode-response.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
+        Http::fake([
+            'oauth.fatsecret.com/connect/token' => Http::response([
+                'access_token' => 'test-token',
+                'expires_in' => 3600,
+            ], 200),
+            'platform.fatsecret.com/rest/food/barcode/find-by-id/v2*' => function ($request) use ($barcodeResponse) {
+                parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+                if (($query['region'] ?? null) === 'BG') {
+                    return Http::response([
+                        'error' => [
+                            'code' => 211,
+                            'message' => 'No food item detected',
+                        ],
+                    ], 200);
+                }
+
+                return Http::response($barcodeResponse, 200);
+            },
+        ]);
+
+        Sanctum::actingAs(User::factory()->create());
+
+        $response = $this->getJson('/api/food/scan?barcode=3800012345678');
+
+        $response->assertOk()
+            ->assertJsonPath('food_name', 'Whole Grain Cheerios');
+    }
+
+    public function test_scan_returns_not_found_when_all_barcode_regions_fail(): void
     {
         Http::fake([
             'oauth.fatsecret.com/connect/token' => Http::response([
