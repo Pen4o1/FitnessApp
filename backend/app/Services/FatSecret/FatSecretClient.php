@@ -64,6 +64,12 @@ class FatSecretClient
         if (is_array($payload)) {
             $errorCode = data_get($payload, 'error.code');
 
+            if ($errorCode === 14 || $errorCode === '14') {
+                throw new FatSecretApiException(
+                    'FatSecret barcode scope is not enabled. Set FATSECRET_SCOPE to "premier barcode".'
+                );
+            }
+
             if ($errorCode === 211 || $errorCode === '211') {
                 throw new FatSecretFoodNotFoundException('No food item detected for barcode.');
             }
