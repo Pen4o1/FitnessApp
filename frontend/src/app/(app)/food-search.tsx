@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddFoodSheet } from '@/components/food-search/add-food-sheet';
+import {
+  BarcodeScannerModal,
+  type ScanWarnings,
+} from '@/components/food-search/barcode-scanner-modal';
 import { FoodSearchResultRow } from '@/components/food-search/food-search-result-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -44,6 +49,9 @@ export default function FoodSearchScreen() {
   }>();
   const [query, setQuery] = useState('');
   const [selectedFood, setSelectedFood] = useState<FoodSearchResult | null>(null);
+  const [scanWarnings, setScanWarnings] = useState<ScanWarnings | null>(null);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0);
   const { results, isLoading, error, hasQuery } = useFoodSearch(query);
 
   const mealType = isMealType(rawMealType) ? rawMealType : 'breakfast';
@@ -97,19 +105,40 @@ export default function FoodSearchScreen() {
               {mealLabel}
             </ThemedText>
 
-            <ThemedView type="backgroundElement" style={styles.searchField}>
-              <TextInput
-                autoCapitalize="none"
-                autoCorrect={false}
-                clearButtonMode="while-editing"
-                placeholder="Search foods..."
-                placeholderTextColor={theme.textSecondary}
-                returnKeyType="search"
-                style={[styles.input, { color: theme.text, borderColor: theme.backgroundSelected }]}
-                value={query}
-                onChangeText={setQuery}
-              />
-            </ThemedView>
+            <View style={styles.searchRow}>
+              <ThemedView type="backgroundElement" style={styles.searchField}>
+                <TextInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  clearButtonMode="while-editing"
+                  placeholder="Search foods..."
+                  placeholderTextColor={theme.textSecondary}
+                  returnKeyType="search"
+                  style={[styles.input, { color: theme.text, borderColor: theme.backgroundSelected }]}
+                  value={query}
+                  onChangeText={setQuery}
+                />
+              </ThemedView>
+
+              <Pressable
+                accessibilityLabel="Scan barcode"
+                accessibilityRole="button"
+                onPress={() => {
+                  setScannerKey((current) => current + 1);
+                  setScannerVisible(true);
+                }}
+                style={({ pressed }) => [
+                  styles.scanButton,
+                  { backgroundColor: theme.accent },
+                  pressed && styles.pressed,
+                ]}>
+                <SymbolView
+                  name={{ ios: 'barcode.viewfinder', android: 'qr_code_scanner', web: 'qr_code_scanner' }}
+                  size={24}
+                  tintColor="#FFFFFF"
+                />
+              </Pressable>
+            </View>
 
             <FlatList
               data={results}
@@ -119,6 +148,7 @@ export default function FoodSearchScreen() {
                   item={item}
                   onPress={(food) => {
                     Keyboard.dismiss();
+                    setScanWarnings(null);
                     setSelectedFood(food);
                   }}
                 />
@@ -154,10 +184,27 @@ export default function FoodSearchScreen() {
         food={selectedFood}
         mealType={mealType}
         date={logDate}
-        onClose={() => setSelectedFood(null)}
+        hasAllergen={scanWarnings?.hasAllergen ?? false}
+        hasDietaryConflict={scanWarnings?.hasDietaryConflict ?? false}
+        onClose={() => {
+          setSelectedFood(null);
+          setScanWarnings(null);
+        }}
         onAdded={() => {
           setSelectedFood(null);
+          setScanWarnings(null);
           router.back();
+        }}
+      />
+
+      <BarcodeScannerModal
+        key={scannerKey}
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        onFoodFound={(food, warnings) => {
+          setScannerVisible(false);
+          setScanWarnings(warnings);
+          setSelectedFood(food);
         }}
       />
     </>
@@ -187,9 +234,21 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: Spacing.two,
+  },
   searchField: {
+    flex: 1,
     borderRadius: Spacing.three,
     padding: Spacing.three,
+  },
+  scanButton: {
+    width: 56,
+    borderRadius: Spacing.three,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     borderWidth: 1,

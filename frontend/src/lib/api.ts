@@ -2,7 +2,13 @@ import { clearToken, getToken, setToken } from '@/lib/auth-storage';
 import type { UserPreferences } from '@/types/dietary';
 import type { WeeklyDaySummary } from '@/types/analytics';
 import type { MealPlan, SavedMealPlan, SavedMealPlanSummary } from '@/types/meal-plan';
-import type { DailySummary, FoodLogItem, FoodSearchResult, MealType } from '@/types/nutrition';
+import type {
+  DailySummary,
+  FoodBarcodeScanResult,
+  FoodLogItem,
+  FoodSearchResult,
+  MealType,
+} from '@/types/nutrition';
 import type {
   ActivityLevel,
   Gender,
@@ -171,6 +177,12 @@ export async function searchFoods(
   const response = await apiFetch<FoodSearchResponse>(`/api/foods/search?${params.toString()}`);
 
   return response.data;
+}
+
+export async function scanFoodByBarcode(barcode: string): Promise<FoodBarcodeScanResult> {
+  const params = new URLSearchParams({ barcode: barcode.trim() });
+
+  return apiFetch<FoodBarcodeScanResult>(`/api/food/scan?${params.toString()}`);
 }
 
 export type LogFoodPayload = {

@@ -30,6 +30,8 @@ type AddFoodSheetProps = {
   food: FoodSearchResult | null;
   mealType: MealType;
   date: string;
+  hasAllergen?: boolean;
+  hasDietaryConflict?: boolean;
   onClose: () => void;
   onAdded: () => void;
 };
@@ -51,6 +53,8 @@ export function AddFoodSheet({
   food,
   mealType,
   date,
+  hasAllergen = false,
+  hasDietaryConflict = false,
   onClose,
   onAdded,
 }: AddFoodSheetProps) {
@@ -194,6 +198,8 @@ export function AddFoodSheet({
 
   const mealLabel = MEAL_TYPE_LABELS[mealType];
   const hasMultipleServings = food.servings.length > 1;
+  const showAllergenWarning = hasAllergen;
+  const showDietaryWarning = hasDietaryConflict;
 
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={handleClose}>
@@ -216,6 +222,22 @@ export function AddFoodSheet({
               <ThemedText themeColor="textSecondary" type="small">
                 Adding to {mealLabel}
               </ThemedText>
+
+              {showAllergenWarning ? (
+                <View style={[styles.warningBanner, { backgroundColor: theme.warning + '22', borderColor: theme.warning }]}>
+                  <ThemedText style={[styles.warningText, { color: theme.warning }]} type="smallBold">
+                    Allergen warning — this product may contain an ingredient you are allergic to.
+                  </ThemedText>
+                </View>
+              ) : null}
+
+              {showDietaryWarning ? (
+                <View style={[styles.warningBanner, { backgroundColor: theme.warning + '22', borderColor: theme.warning }]}>
+                  <ThemedText style={[styles.warningText, { color: theme.warning }]} type="smallBold">
+                    Dietary conflict — this product may not match your dietary preferences.
+                  </ThemedText>
+                </View>
+              ) : null}
 
               {hasMultipleServings ? (
                 <View style={styles.servingSection}>
@@ -384,6 +406,16 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#d64545',
+  },
+  warningBanner: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    marginTop: Spacing.one,
+  },
+  warningText: {
+    lineHeight: 20,
   },
   actions: {
     flexDirection: 'row',

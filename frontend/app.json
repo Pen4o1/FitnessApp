@@ -35,6 +35,13 @@
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan food barcodes.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

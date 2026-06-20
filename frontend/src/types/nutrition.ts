@@ -45,6 +45,12 @@ export type FoodSearchResult = {
   servings: FoodServingOption[];
 };
 
+export type FoodBarcodeScanResult = FoodSearchResult & {
+  barcode: string;
+  has_allergen: boolean;
+  has_dietary_conflict: boolean;
+};
+
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export type MealEntry = {
