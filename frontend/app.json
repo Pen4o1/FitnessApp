@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.pen4o1.frontend"
+      "bundleIdentifier": "com.pen4o1.frontend",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow FitnessApp to access your camera to scan food barcodes."
+      }
     },
     "android": {
       "adaptiveIcon": {

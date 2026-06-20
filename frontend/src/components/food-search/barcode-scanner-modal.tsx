@@ -1,6 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Device from 'expo-device';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -49,6 +50,8 @@ export function BarcodeScannerModal({ visible, onClose, onFoodFound }: BarcodeSc
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [permission, requestPermission] = useCameraPermissions();
+  const hasRequestedPermission = useRef(false);
+  const isSimulator = !Device.isDevice;
 
   const [phase, setPhase] = useState<ScanPhase>('scanning');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -71,6 +74,22 @@ export function BarcodeScannerModal({ visible, onClose, onFoodFound }: BarcodeSc
       true,
     );
   }, [phase, visible, scanLineProgress]);
+
+  useEffect(() => {
+    if (!visible) {
+      hasRequestedPermission.current = false;
+      return;
+    }
+
+    if (isSimulator || !permission || permission.granted || hasRequestedPermission.current) {
+      return;
+    }
+
+    if (permission.status === 'undetermined' && permission.canAskAgain) {
+      hasRequestedPermission.current = true;
+      void requestPermission();
+    }
+  }, [visible, isSimulator, permission, requestPermission]);
 
   const scanLineStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: scanLineProgress.value * (viewfinderSize - 6) }],
@@ -119,6 +138,31 @@ export function BarcodeScannerModal({ visible, onClose, onFoodFound }: BarcodeSc
     }
   }
 
+  function renderSimulatorUnavailable() {
+    return (
+      <View style={[styles.permissionContainer, { paddingTop: insets.top + Spacing.four }]}>
+        <View style={styles.permissionIconWrap}>
+          <SymbolView
+            name={{ ios: 'iphone', android: 'smartphone', web: 'smartphone' }}
+            size={48}
+            tintColor={theme.textSecondary}
+          />
+        </View>
+        <ThemedText type="subtitle" style={styles.permissionTitle}>
+          Camera not available
+        </ThemedText>
+        <ThemedText themeColor="textSecondary" style={styles.permissionBody}>
+          The iOS Simulator does not support barcode scanning. Run the app on a physical iPhone to use the scanner.
+        </ThemedText>
+        <Pressable onPress={handleClose} style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
+          <ThemedText themeColor="textSecondary" type="smallBold">
+            Close
+          </ThemedText>
+        </Pressable>
+      </View>
+    );
+  }
+
   function renderPermissionDenied() {
     return (
       <View style={[styles.permissionContainer, { paddingTop: insets.top + Spacing.four }]}>
@@ -133,7 +177,8 @@ export function BarcodeScannerModal({ visible, onClose, onFoodFound }: BarcodeSc
           Camera access needed
         </ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.permissionBody}>
-          To scan barcodes on food packaging, allow camera access in your device settings.
+          Allow camera access in Settings → Privacy & Security → Camera → FitnessApp. If Camera does not appear
+          there, rebuild the app after installing expo-camera.
         </ThemedText>
         <Pressable
           onPress={() => void Linking.openSettings()}
@@ -178,6 +223,10 @@ export function BarcodeScannerModal({ visible, onClose, onFoodFound }: BarcodeSc
   }
 
   function renderContent() {
+    if (isSimulator) {
+      return renderSimulatorUnavailable();
+    }
+
     if (!permission) {
       return (
         <View style={styles.centeredState}>
