@@ -1,6 +1,6 @@
 {
   "foods_search": {
-    "max_results": "2",
+    "max_results": "3",
     "total_results": "220",
     "page_number": "0",
     "results": {
@@ -22,6 +22,47 @@
               "fat": "7.57",
               "is_default": "true"
             }
+          }
+        },
+        {
+          "food_id": "3442",
+          "food_name": "Egg",
+          "food_type": "Generic",
+          "food_url": "https://foods.fatsecret.com/calories-nutrition/generic/egg",
+          "servings": {
+            "serving": [
+              {
+                "serving_id": "50341",
+                "serving_description": "1 large",
+                "metric_serving_amount": "50.000",
+                "metric_serving_unit": "g",
+                "calories": "72",
+                "carbohydrate": "0.36",
+                "protein": "6.29",
+                "fat": "4.75",
+                "is_default": "true"
+              },
+              {
+                "serving_id": "50342",
+                "serving_description": "1 medium",
+                "metric_serving_amount": "44.000",
+                "metric_serving_unit": "g",
+                "calories": "63",
+                "carbohydrate": "0.32",
+                "protein": "5.54",
+                "fat": "4.18"
+              },
+              {
+                "serving_id": "50343",
+                "serving_description": "100 g",
+                "metric_serving_amount": "100.000",
+                "metric_serving_unit": "g",
+                "calories": "143",
+                "carbohydrate": "0.72",
+                "protein": "12.56",
+                "fat": "9.51"
+              }
+            ]
           }
         },
         {

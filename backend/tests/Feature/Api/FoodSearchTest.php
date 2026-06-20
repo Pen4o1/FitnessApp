@@ -36,7 +36,7 @@ class FoodSearchTest extends TestCase
         $response = $this->getJson('/api/foods/search?q=chicken');
 
         $response->assertOk()
-            ->assertJsonCount(1, 'data')
+            ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.external_food_id', '1641')
             ->assertJsonPath('data.0.external_source', 'fatsecret')
             ->assertJsonPath('data.0.food_name', 'Chicken Breast')
@@ -45,7 +45,14 @@ class FoodSearchTest extends TestCase
             ->assertJsonPath('data.0.carbs_g', 0)
             ->assertJsonPath('data.0.fat_g', 7.57)
             ->assertJsonPath('data.0.serving_unit', 'g')
-            ->assertJsonPath('data.0.serving_description', '100 g');
+            ->assertJsonPath('data.0.serving_description', '100 g')
+            ->assertJsonCount(1, 'data.0.servings')
+            ->assertJsonPath('data.1.food_name', 'Egg')
+            ->assertJsonPath('data.1.serving_description', '1 large')
+            ->assertJsonCount(3, 'data.1.servings')
+            ->assertJsonPath('data.1.servings.0.unit', 'serving')
+            ->assertJsonPath('data.2.food_name', 'Unknown Food')
+            ->assertJsonPath('data.2.servings.0.unit', 'serving');
     }
 
     public function test_unauthenticated_search_returns_unauthorized(): void

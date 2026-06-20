@@ -22,7 +22,20 @@ class FoodService
      *     carbs_g: float,
      *     fat_g: float,
      *     serving_unit: string,
-     *     serving_description: string
+     *     serving_description: string,
+     *     servings: list<array{
+     *         id: string,
+     *         description: string,
+     *         unit: string,
+     *         unit_label: string,
+     *         base_quantity: float,
+     *         default_quantity: float,
+     *         calories: int,
+     *         protein_g: float,
+     *         carbs_g: float,
+     *         fat_g: float,
+     *         is_default: bool
+     *     }>
      * }>
      */
     public function search(string $query, int $page = 0, int $maxResults = 20): array
@@ -58,7 +71,20 @@ class FoodService
      *     carbs_g: float,
      *     fat_g: float,
      *     serving_unit: string,
-     *     serving_description: string
+     *     serving_description: string,
+     *     servings: list<array{
+     *         id: string,
+     *         description: string,
+     *         unit: string,
+     *         unit_label: string,
+     *         base_quantity: float,
+     *         default_quantity: float,
+     *         calories: int,
+     *         protein_g: float,
+     *         carbs_g: float,
+     *         fat_g: float,
+     *         is_default: bool
+     *     }>
      * }|null
      */
     public function normalizeFood(array $food): ?array
@@ -70,12 +96,13 @@ class FoodService
             return null;
         }
 
-        $macros = $this->extractPer100gMacros($food);
+        $servings = $this->extractServingOptions($food);
 
-        if ($macros === null) {
+        if ($servings === []) {
             return null;
         }
 
+        $defaultServing = $this->pickDefaultServing($servings);
         $brandName = data_get($food, 'brand_name');
 
         return [
@@ -83,13 +110,248 @@ class FoodService
             'external_source' => FoodExternalSource::Fatsecret->value,
             'food_name' => $foodName,
             'brand_name' => is_string($brandName) && $brandName !== '' ? $brandName : null,
+            'calories' => $defaultServing['calories'],
+            'protein_g' => $defaultServing['protein_g'],
+            'carbs_g' => $defaultServing['carbs_g'],
+            'fat_g' => $defaultServing['fat_g'],
+            'serving_unit' => $defaultServing['unit_label'],
+            'serving_description' => $defaultServing['description'],
+            'servings' => $servings,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $food
+     * @return list<array{
+     *     id: string,
+     *     description: string,
+     *     unit: string,
+     *     unit_label: string,
+     *     base_quantity: float,
+     *     default_quantity: float,
+     *     calories: int,
+     *     protein_g: float,
+     *     carbs_g: float,
+     *     fat_g: float,
+     *     is_default: bool
+     * }>
+     */
+    private function extractServingOptions(array $food): array
+    {
+        $servings = $this->normalizeServings(data_get($food, 'servings.serving'));
+        $options = [];
+        $seenDescriptions = [];
+
+        foreach ($servings as $serving) {
+            $option = $this->normalizeServingOption($serving);
+
+            if ($option === null) {
+                continue;
+            }
+
+            $key = strtolower($option['description']);
+
+            if (isset($seenDescriptions[$key])) {
+                continue;
+            }
+
+            $seenDescriptions[$key] = true;
+            $options[] = $option;
+        }
+
+        $has100g = false;
+
+        foreach ($options as $option) {
+            if ($option['unit'] === 'g' && $option['base_quantity'] === 100.0) {
+                $has100g = true;
+                break;
+            }
+        }
+
+        if (! $has100g) {
+            $per100g = $this->extractPer100gMacros($food);
+
+            if ($per100g !== null) {
+                $options[] = [
+                    'id' => '100g',
+                    'description' => '100 g',
+                    'unit' => 'g',
+                    'unit_label' => 'g',
+                    'base_quantity' => 100.0,
+                    'default_quantity' => 100.0,
+                    'calories' => $per100g['calories'],
+                    'protein_g' => $per100g['protein_g'],
+                    'carbs_g' => $per100g['carbs_g'],
+                    'fat_g' => $per100g['fat_g'],
+                    'is_default' => false,
+                ];
+            }
+        }
+
+        usort($options, function (array $a, array $b): int {
+            if ($a['is_default'] !== $b['is_default']) {
+                return $b['is_default'] <=> $a['is_default'];
+            }
+
+            if ($a['unit'] !== $b['unit']) {
+                return $a['unit'] === 'g' ? 1 : -1;
+            }
+
+            return 0;
+        });
+
+        return $options;
+    }
+
+    /**
+     * @param  array<string, mixed>  $serving
+     * @return array{
+     *     id: string,
+     *     description: string,
+     *     unit: string,
+     *     unit_label: string,
+     *     base_quantity: float,
+     *     default_quantity: float,
+     *     calories: int,
+     *     protein_g: float,
+     *     carbs_g: float,
+     *     fat_g: float,
+     *     is_default: bool
+     * }|null
+     */
+    private function normalizeServingOption(array $serving): ?array
+    {
+        $description = data_get($serving, 'serving_description');
+
+        if (! is_string($description) || $description === '') {
+            return null;
+        }
+
+        $servingId = data_get($serving, 'serving_id');
+        $isDefault = $this->isDefaultServing($serving);
+        $unit = $this->detectServingUnit($serving, $description);
+
+        if ($unit === 'g') {
+            $factor = $this->gramScaleFactor($serving);
+
+            if ($factor === null && ! $this->isExact100GramServing($serving)) {
+                return null;
+            }
+
+            $macros = $this->scaleMacros($serving, $factor ?? 1.0);
+
+            if ($macros === null) {
+                return null;
+            }
+
+            return [
+                'id' => is_scalar($servingId) ? (string) $servingId : md5($description),
+                'description' => $description,
+                'unit' => 'g',
+                'unit_label' => 'g',
+                'base_quantity' => 100.0,
+                'default_quantity' => 100.0,
+                'calories' => $macros['calories'],
+                'protein_g' => $macros['protein_g'],
+                'carbs_g' => $macros['carbs_g'],
+                'fat_g' => $macros['fat_g'],
+                'is_default' => $isDefault,
+            ];
+        }
+
+        $macros = $this->scaleMacros($serving, 1.0);
+
+        if ($macros === null) {
+            return null;
+        }
+
+        return [
+            'id' => is_scalar($servingId) ? (string) $servingId : md5($description),
+            'description' => $description,
+            'unit' => 'serving',
+            'unit_label' => $this->extractUnitLabel($description),
+            'base_quantity' => 1.0,
+            'default_quantity' => 1.0,
             'calories' => $macros['calories'],
             'protein_g' => $macros['protein_g'],
             'carbs_g' => $macros['carbs_g'],
             'fat_g' => $macros['fat_g'],
-            'serving_unit' => 'g',
-            'serving_description' => '100 g',
+            'is_default' => $isDefault,
         ];
+    }
+
+    /**
+     * @param  list<array{
+     *     id: string,
+     *     description: string,
+     *     unit: string,
+     *     unit_label: string,
+     *     base_quantity: float,
+     *     default_quantity: float,
+     *     calories: int,
+     *     protein_g: float,
+     *     carbs_g: float,
+     *     fat_g: float,
+     *     is_default: bool
+     * }>  $options
+     * @return array{
+     *     id: string,
+     *     description: string,
+     *     unit: string,
+     *     unit_label: string,
+     *     base_quantity: float,
+     *     default_quantity: float,
+     *     calories: int,
+     *     protein_g: float,
+     *     carbs_g: float,
+     *     fat_g: float,
+     *     is_default: bool
+     * }
+     */
+    private function pickDefaultServing(array $options): array
+    {
+        foreach ($options as $option) {
+            if ($option['is_default']) {
+                return $option;
+            }
+        }
+
+        foreach ($options as $option) {
+            if ($option['unit'] === 'serving') {
+                return $option;
+            }
+        }
+
+        return $options[0];
+    }
+
+    /**
+     * @param  array<string, mixed>  $serving
+     */
+    private function detectServingUnit(array $serving, string $description): string
+    {
+        $lower = strtolower($description);
+
+        if ($this->isExact100GramServing($serving) || str_contains($lower, '100 g')) {
+            return 'g';
+        }
+
+        if (preg_match('/\d+(?:\.\d+)?\s*g\b/', $lower) === 1) {
+            return 'g';
+        }
+
+        return 'serving';
+    }
+
+    private function extractUnitLabel(string $description): string
+    {
+        if (preg_match('/^\d+(?:\.\d+)?(?:\/\d+)?\s+(.+)/i', $description, $matches) === 1) {
+            $label = trim($matches[1]);
+
+            return $label !== '' ? $label : 'serving';
+        }
+
+        return 'serving';
     }
 
     /**

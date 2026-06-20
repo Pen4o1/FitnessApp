@@ -23,14 +23,17 @@ class FoodLogTest extends TestCase
             'date' => now()->toDateString(),
             'meal_type' => MealType::Lunch->value,
             'quantity' => 150,
+            'serving_unit' => 'g',
+            'serving_description' => '100 g',
+            'base_quantity' => 100,
             'external_food_id' => '1641',
             'external_source' => FoodExternalSource::Fatsecret->value,
             'food_name' => 'Chicken Breast',
             'brand_name' => null,
-            'calories_per_100g' => 195,
-            'protein_g_per_100g' => 29.55,
-            'carbs_g_per_100g' => 0,
-            'fat_g_per_100g' => 7.57,
+            'calories_per_base' => 195,
+            'protein_g_per_base' => 29.55,
+            'carbs_g_per_base' => 0,
+            'fat_g_per_base' => 7.57,
         ]);
 
         $response->assertCreated()
@@ -49,19 +52,53 @@ class FoodLogTest extends TestCase
         $this->assertSame(293, $dailyLog->total_calories);
     }
 
+    public function test_authenticated_user_can_log_count_based_food(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/foods/log', [
+            'date' => now()->toDateString(),
+            'meal_type' => MealType::Breakfast->value,
+            'quantity' => 2,
+            'serving_unit' => 'large',
+            'serving_description' => '1 large',
+            'base_quantity' => 1,
+            'external_food_id' => '3442',
+            'external_source' => FoodExternalSource::Fatsecret->value,
+            'food_name' => 'Egg',
+            'brand_name' => null,
+            'calories_per_base' => 72,
+            'protein_g_per_base' => 6.29,
+            'carbs_g_per_base' => 0.36,
+            'fat_g_per_base' => 4.75,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('food_name', 'Egg')
+            ->assertJsonPath('quantity', 2)
+            ->assertJsonPath('serving_unit', 'large')
+            ->assertJsonPath('serving_description', '1 large')
+            ->assertJsonPath('calories', 144)
+            ->assertJsonPath('protein_g', 12.58);
+    }
+
     public function test_log_food_requires_authentication(): void
     {
         $response = $this->postJson('/api/foods/log', [
             'date' => now()->toDateString(),
             'meal_type' => MealType::Lunch->value,
             'quantity' => 100,
+            'serving_unit' => 'g',
+            'serving_description' => '100 g',
+            'base_quantity' => 100,
             'external_food_id' => '1641',
             'external_source' => FoodExternalSource::Fatsecret->value,
             'food_name' => 'Chicken Breast',
-            'calories_per_100g' => 195,
-            'protein_g_per_100g' => 29.55,
-            'carbs_g_per_100g' => 0,
-            'fat_g_per_100g' => 7.57,
+            'calories_per_base' => 195,
+            'protein_g_per_base' => 29.55,
+            'carbs_g_per_base' => 0,
+            'fat_g_per_base' => 7.57,
         ]);
 
         $response->assertUnauthorized();

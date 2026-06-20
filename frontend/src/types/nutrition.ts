@@ -17,6 +17,20 @@ export type FoodLogItem = {
   serving_unit: string;
 };
 
+export type FoodServingOption = {
+  id: string;
+  description: string;
+  unit: 'g' | 'serving';
+  unit_label: string;
+  base_quantity: number;
+  default_quantity: number;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  is_default: boolean;
+};
+
 export type FoodSearchResult = {
   external_food_id: string;
   external_source: string;
@@ -28,6 +42,7 @@ export type FoodSearchResult = {
   fat_g: number;
   serving_unit: string;
   serving_description: string;
+  servings: FoodServingOption[];
 };
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -109,7 +124,18 @@ export function scaleMacrosFrom100g(
   fat_g: number,
   quantityGrams: number,
 ): MacroTotals {
-  const factor = quantityGrams / 100;
+  return scaleMacrosFromBase(calories, protein_g, carbs_g, fat_g, 100, quantityGrams);
+}
+
+export function scaleMacrosFromBase(
+  calories: number,
+  protein_g: number,
+  carbs_g: number,
+  fat_g: number,
+  baseQuantity: number,
+  quantity: number,
+): MacroTotals {
+  const factor = quantity / baseQuantity;
 
   return {
     calories: Math.round(calories * factor),

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -114,7 +115,13 @@ export default function FoodSearchScreen() {
               data={results}
               keyExtractor={(item) => item.external_food_id}
               renderItem={({ item }: { item: FoodSearchResult }) => (
-                <FoodSearchResultRow item={item} onPress={setSelectedFood} />
+                <FoodSearchResultRow
+                  item={item}
+                  onPress={(food) => {
+                    Keyboard.dismiss();
+                    setSelectedFood(food);
+                  }}
+                />
               )}
               contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"

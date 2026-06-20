@@ -176,14 +176,17 @@ export type LogFoodPayload = {
   date: string;
   meal_type: MealType;
   quantity: number;
+  serving_unit: string;
+  serving_description: string;
+  base_quantity: number;
   external_food_id: string;
   external_source: string;
   food_name: string;
   brand_name: string | null;
-  calories_per_100g: number;
-  protein_g_per_100g: number;
-  carbs_g_per_100g: number;
-  fat_g_per_100g: number;
+  calories_per_base: number;
+  protein_g_per_base: number;
+  carbs_g_per_base: number;
+  fat_g_per_base: number;
 };
 
 export async function logFood(payload: LogFoodPayload): Promise<FoodLogItem> {

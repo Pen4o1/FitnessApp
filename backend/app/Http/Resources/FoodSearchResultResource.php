@@ -25,6 +25,7 @@ class FoodSearchResultResource extends JsonResource
             'fat_g' => $this->resource['fat_g'],
             'serving_unit' => $this->resource['serving_unit'],
             'serving_description' => $this->resource['serving_description'],
+            'servings' => FoodServingOptionResource::collection($this->resource['servings']),
         ];
     }
 }
