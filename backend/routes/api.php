@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DailyLogController;
 use App\Http\Controllers\Api\FoodController;
+use App\Http\Controllers\Api\MealPlannerController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\UserPreferencesController;
 use Illuminate\Support\Facades\Route;
@@ -21,4 +22,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/foods/log', [FoodController::class, 'store']);
     Route::get('/daily-summary', [DailyLogController::class, 'show']);
     Route::get('/analytics/weekly', [AnalyticsController::class, 'getWeeklySummary']);
+    Route::get('/meal-planner/generate', [MealPlannerController::class, 'generateDailyPlan']);
 });
