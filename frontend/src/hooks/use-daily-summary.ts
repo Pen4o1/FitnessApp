@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { getDailySummary } from '@/lib/api';
+import { todayDateString } from '@/lib/date';
 import type { DailySummary } from '@/types/nutrition';
 
 type UseDailySummaryResult = {
@@ -10,10 +11,6 @@ type UseDailySummaryResult = {
   error: string | null;
   refresh: () => Promise<void>;
 };
-
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function useDailySummary(date?: string): UseDailySummaryResult {
   const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -37,6 +34,10 @@ export function useDailySummary(date?: string): UseDailySummaryResult {
       setIsRefreshing(false);
     }
   }, [targetDate]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   return { summary, isLoading, isRefreshing, error, refresh };
 }

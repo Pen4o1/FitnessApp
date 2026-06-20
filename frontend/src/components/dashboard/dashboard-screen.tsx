@@ -1,5 +1,6 @@
+import { SymbolView } from 'expo-symbols';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,6 +13,7 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useDailySummary } from '@/hooks/use-daily-summary';
 import { useTheme } from '@/hooks/use-theme';
+import { addDays, isToday, todayDateString } from '@/lib/date';
 import type { MealType } from '@/types/nutrition';
 
 function formatHeaderDate(dateString: string): string {
@@ -27,13 +29,31 @@ export function DashboardScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { user } = useAuth();
-  const { summary, isLoading, isRefreshing, error, refresh } = useDailySummary();
+  const [selectedDate, setSelectedDate] = useState(todayDateString);
+  const { summary, isLoading, isRefreshing, error, refresh } = useDailySummary(selectedDate);
+  const viewingToday = isToday(selectedDate);
 
   useFocusEffect(
     useCallback(() => {
       void refresh();
     }, [refresh]),
   );
+
+  function handlePreviousDay() {
+    setSelectedDate((currentDate) => addDays(currentDate, -1));
+  }
+
+  function handleNextDay() {
+    if (viewingToday) {
+      return;
+    }
+
+    setSelectedDate((currentDate) => addDays(currentDate, 1));
+  }
+
+  function handleGoToToday() {
+    setSelectedDate(todayDateString());
+  }
 
   function handleAddFood(mealType: MealType) {
     if (!summary) {
@@ -83,9 +103,50 @@ export function DashboardScreen() {
                 <ThemedText type="subtitle" style={styles.greeting}>
                   Hello{user ? `, ${user.first_name}` : ''}
                 </ThemedText>
-                <ThemedText themeColor="textSecondary" style={styles.date}>
-                  {formatHeaderDate(summary.date)}
-                </ThemedText>
+                <View style={styles.dateNavigator}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous day"
+                    onPress={handlePreviousDay}
+                    style={({ pressed }) => [styles.dateNavButton, pressed && styles.dateNavButtonPressed]}>
+                    <SymbolView
+                      name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }}
+                      size={16}
+                      weight="semibold"
+                      tintColor={theme.text}
+                    />
+                  </Pressable>
+                  <ThemedText themeColor="textSecondary" style={styles.date}>
+                    {formatHeaderDate(selectedDate)}
+                  </ThemedText>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Next day"
+                    accessibilityState={{ disabled: viewingToday }}
+                    disabled={viewingToday}
+                    onPress={handleNextDay}
+                    style={({ pressed }) => [
+                      styles.dateNavButton,
+                      viewingToday && styles.dateNavButtonDisabled,
+                      pressed && !viewingToday && styles.dateNavButtonPressed,
+                    ]}>
+                    <SymbolView
+                      name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+                      size={16}
+                      weight="semibold"
+                      tintColor={viewingToday ? theme.textSecondary : theme.text}
+                    />
+                  </Pressable>
+                </View>
+                {!viewingToday ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Go to today"
+                    onPress={handleGoToToday}
+                    style={({ pressed }) => [styles.todayLink, pressed && styles.todayLinkPressed]}>
+                    <ThemedText style={[styles.todayLinkText, { color: theme.accent }]}>Today</ThemedText>
+                  </Pressable>
+                ) : null}
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -130,7 +191,7 @@ export function DashboardScreen() {
 
           <View style={styles.mealsSection}>
             <ThemedText type="smallBold" style={styles.mealsTitle}>
-              Today's meals
+              {viewingToday ? "Today's meals" : 'Meals'}
             </ThemedText>
             {summary.meals.map((meal) => (
               <MealSection
@@ -191,9 +252,39 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 36,
   },
+  dateNavigator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  dateNavButton: {
+    width: 32,
+    height: 32,
+    borderRadius: Spacing.two,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateNavButtonPressed: {
+    opacity: 0.7,
+  },
+  dateNavButtonDisabled: {
+    opacity: 0.35,
+  },
   date: {
+    flex: 1,
     fontSize: 15,
     textTransform: 'capitalize',
+  },
+  todayLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.half,
+  },
+  todayLinkPressed: {
+    opacity: 0.7,
+  },
+  todayLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   summaryCard: {
     borderRadius: Spacing.four,
