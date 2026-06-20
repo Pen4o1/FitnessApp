@@ -3,6 +3,7 @@
 namespace App\Services\FatSecret;
 
 use App\Exceptions\FatSecretApiException;
+use App\Exceptions\FatSecretFoodNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -38,6 +39,44 @@ class FatSecretClient
 
         if (! is_array($payload)) {
             throw new FatSecretApiException('FatSecret search returned an invalid response.');
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function findFoodByBarcode(string $barcode): array
+    {
+        $response = Http::withToken($this->getAccessToken())
+            ->acceptJson()
+            ->get($this->apiUrl('food/barcode/find-by-id/v2'), [
+                'barcode' => $barcode,
+                'format' => 'json',
+                'flag_default_serving' => 'true',
+                'include_food_attributes' => 'true',
+                'region' => config('services.fatsecret.region'),
+            ]);
+
+        $payload = $response->json();
+
+        if (is_array($payload)) {
+            $errorCode = data_get($payload, 'error.code');
+
+            if ($errorCode === 211 || $errorCode === '211') {
+                throw new FatSecretFoodNotFoundException('No food item detected for barcode.');
+            }
+        }
+
+        if (! $response->successful()) {
+            throw new FatSecretApiException(
+                'FatSecret barcode lookup failed with status '.$response->status()
+            );
+        }
+
+        if (! is_array($payload)) {
+            throw new FatSecretApiException('FatSecret barcode lookup returned an invalid response.');
         }
 
         return $payload;

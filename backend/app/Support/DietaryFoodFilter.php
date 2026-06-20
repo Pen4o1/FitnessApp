@@ -35,6 +35,30 @@ class DietaryFoodFilter
     }
 
     /**
+     * @param  list<string>  $allergies
+     */
+    public function conflictsWithAllergies(string $foodName, array $allergies): bool
+    {
+        if ($allergies === []) {
+            return false;
+        }
+
+        return ! $this->allows($foodName, [], $allergies);
+    }
+
+    /**
+     * @param  list<string>  $dietaryPreferences
+     */
+    public function conflictsWithDietaryPreferences(string $foodName, array $dietaryPreferences): bool
+    {
+        if ($dietaryPreferences === []) {
+            return false;
+        }
+
+        return ! $this->allows($foodName, $dietaryPreferences, []);
+    }
+
+    /**
      * @param  list<string>  $ingredientStrings
      * @param  list<string>  $dietaryPreferences
      * @param  list<string>  $allergies

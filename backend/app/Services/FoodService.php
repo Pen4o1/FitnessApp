@@ -2,13 +2,18 @@
 
 namespace App\Services;
 
+use App\Enums\AllergyRestriction;
 use App\Enums\FoodExternalSource;
+use App\Models\User;
 use App\Services\FatSecret\FatSecretClient;
+use App\Support\DietaryFoodFilter;
 
 class FoodService
 {
     public function __construct(
         private readonly FatSecretClient $fatSecretClient,
+        private readonly UserPreferencesService $userPreferencesService,
+        private readonly DietaryFoodFilter $dietaryFoodFilter,
     ) {}
 
     /**
@@ -57,6 +62,178 @@ class FoodService
         $normalized = $this->normalizeFood($foods);
 
         return $normalized !== null ? [$normalized] : [];
+    }
+
+    /**
+     * @return array{
+     *     barcode: string,
+     *     external_food_id: string,
+     *     external_source: string,
+     *     food_name: string,
+     *     brand_name: string|null,
+     *     calories: int,
+     *     protein_g: float,
+     *     carbs_g: float,
+     *     fat_g: float,
+     *     serving_unit: string,
+     *     serving_description: string,
+     *     servings: list<array{
+     *         id: string,
+     *         description: string,
+     *         unit: string,
+     *         unit_label: string,
+     *         base_quantity: float,
+     *         default_quantity: float,
+     *         calories: int,
+     *         protein_g: float,
+     *         carbs_g: float,
+     *         fat_g: float,
+     *         is_default: bool
+     *     }>,
+     *     has_allergen: bool,
+     *     has_dietary_conflict: bool
+     * }|null
+     */
+    public function searchByBarcode(string $barcode, User $user): ?array
+    {
+        $gtin13 = $this->normalizeBarcodeToGtin13($barcode);
+        $response = $this->fatSecretClient->findFoodByBarcode($gtin13);
+        $food = data_get($response, 'food');
+
+        if (! is_array($food)) {
+            return null;
+        }
+
+        $normalized = $this->normalizeFood($food);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        $normalized['external_source'] = FoodExternalSource::Barcode->value;
+
+        $preferences = $this->userPreferencesService->getPreferences($user);
+        $foodLabel = $this->buildFoodLabel($normalized['food_name'], $normalized['brand_name']);
+
+        $hasAllergen = $this->detectAllergenConflict(
+            $food,
+            $foodLabel,
+            $preferences['allergies'],
+        );
+
+        $hasDietaryConflict = $this->dietaryFoodFilter->conflictsWithDietaryPreferences(
+            $foodLabel,
+            $preferences['dietary_preferences'],
+        );
+
+        return array_merge($normalized, [
+            'barcode' => $gtin13,
+            'has_allergen' => $hasAllergen,
+            'has_dietary_conflict' => $hasDietaryConflict,
+        ]);
+    }
+
+    private function normalizeBarcodeToGtin13(string $barcode): string
+    {
+        $digits = preg_replace('/\D/', '', $barcode) ?? '';
+
+        return str_pad($digits, 13, '0', STR_PAD_LEFT);
+    }
+
+    private function buildFoodLabel(string $foodName, ?string $brandName): string
+    {
+        if ($brandName !== null && $brandName !== '') {
+            return trim($brandName.' '.$foodName);
+        }
+
+        return $foodName;
+    }
+
+    /**
+     * @param  array<string, mixed>  $food
+     * @param  list<string>  $allergies
+     */
+    private function detectAllergenConflict(array $food, string $foodLabel, array $allergies): bool
+    {
+        if ($allergies === []) {
+            return false;
+        }
+
+        if ($this->fatSecretAllergenConflict($food, $allergies)) {
+            return true;
+        }
+
+        return $this->dietaryFoodFilter->conflictsWithAllergies($foodLabel, $allergies);
+    }
+
+    /**
+     * @param  array<string, mixed>  $food
+     * @param  list<string>  $allergies
+     */
+    private function fatSecretAllergenConflict(array $food, array $allergies): bool
+    {
+        $allergens = $this->normalizeAllergens(data_get($food, 'food_attributes.allergens.allergen'));
+
+        if ($allergens === []) {
+            return false;
+        }
+
+        $contained = [];
+
+        foreach ($allergens as $allergen) {
+            $name = data_get($allergen, 'name');
+            $value = data_get($allergen, 'value');
+
+            if (! is_string($name) || ($value !== '1' && $value !== 1)) {
+                continue;
+            }
+
+            $contained[] = strtolower($name);
+        }
+
+        if ($contained === []) {
+            return false;
+        }
+
+        foreach ($allergies as $allergy) {
+            foreach ($this->fatSecretAllergenNamesFor($allergy) as $allergenName) {
+                if (in_array(strtolower($allergenName), $contained, true)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function fatSecretAllergenNamesFor(string $allergy): array
+    {
+        return match ($allergy) {
+            AllergyRestriction::GlutenFree->value => ['Gluten'],
+            AllergyRestriction::NutFree->value => ['Nuts', 'Peanuts'],
+            AllergyRestriction::DairyFree->value => ['Milk', 'Lactose'],
+            AllergyRestriction::SoyFree->value => ['Soy'],
+            default => [],
+        };
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeAllergens(mixed $allergens): array
+    {
+        if (! is_array($allergens)) {
+            return [];
+        }
+
+        if (array_is_list($allergens)) {
+            return array_values(array_filter($allergens, 'is_array'));
+        }
+
+        return [$allergens];
     }
 
     /**

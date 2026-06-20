@@ -4,6 +4,8 @@ namespace Tests\Unit\Services;
 
 use App\Services\FatSecret\FatSecretClient;
 use App\Services\FoodService;
+use App\Services\UserPreferencesService;
+use App\Support\DietaryFoodFilter;
 use Mockery;
 use Tests\TestCase;
 
@@ -16,9 +18,18 @@ class FoodServiceTest extends TestCase
         parent::tearDown();
     }
 
+    private function makeFoodService(?FatSecretClient $client = null): FoodService
+    {
+        return new FoodService(
+            $client ?? Mockery::mock(FatSecretClient::class),
+            new UserPreferencesService(),
+            new DietaryFoodFilter(),
+        );
+    }
+
     public function test_normalize_food_uses_exact_100g_serving(): void
     {
-        $service = new FoodService(Mockery::mock(FatSecretClient::class));
+        $service = $this->makeFoodService();
 
         $result = $service->normalizeFood([
             'food_id' => '1',
@@ -48,7 +59,7 @@ class FoodServiceTest extends TestCase
 
     public function test_normalize_food_includes_count_based_servings_for_eggs(): void
     {
-        $service = new FoodService(Mockery::mock(FatSecretClient::class));
+        $service = $this->makeFoodService();
 
         $result = $service->normalizeFood([
             'food_id' => '3442',
@@ -101,7 +112,7 @@ class FoodServiceTest extends TestCase
 
     public function test_normalize_food_scales_from_50g_serving(): void
     {
-        $service = new FoodService(Mockery::mock(FatSecretClient::class));
+        $service = $this->makeFoodService();
 
         $result = $service->normalizeFood([
             'food_id' => '2',
@@ -130,7 +141,7 @@ class FoodServiceTest extends TestCase
 
     public function test_normalize_food_includes_non_gram_servings(): void
     {
-        $service = new FoodService(Mockery::mock(FatSecretClient::class));
+        $service = $this->makeFoodService();
 
         $result = $service->normalizeFood([
             'food_id' => '3',

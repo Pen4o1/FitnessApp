@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user/preferences', [UserPreferencesController::class, 'update']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/foods/search', [FoodController::class, 'search']);
+    Route::get('/food/scan', [FoodController::class, 'searchByBarcode']);
     Route::post('/foods/log', [FoodController::class, 'store']);
     Route::get('/daily-summary', [DailyLogController::class, 'show']);
     Route::get('/analytics/weekly', [AnalyticsController::class, 'getWeeklySummary']);

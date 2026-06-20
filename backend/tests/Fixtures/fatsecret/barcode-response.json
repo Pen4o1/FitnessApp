@@ -1,0 +1,109 @@
+{
+  "food": {
+    "food_id": "50953",
+    "food_name": "Whole Grain Cheerios",
+    "brand_name": "General Mills",
+    "food_type": "Brand",
+    "food_url": "https://foods.fatsecret.com/calories-nutrition/general-mills/whole-grain-cheerios",
+    "food_attributes": {
+      "allergens": {
+        "allergen": [
+          {
+            "id": "24904",
+            "name": "Fish",
+            "value": "-1"
+          },
+          {
+            "id": "24905",
+            "name": "Soy",
+            "value": "-1"
+          },
+          {
+            "id": "24906",
+            "name": "Nuts",
+            "value": "-1"
+          },
+          {
+            "id": "24907",
+            "name": "Lactose",
+            "value": "-1"
+          },
+          {
+            "id": "24908",
+            "name": "Shellfish",
+            "value": "-1"
+          },
+          {
+            "id": "24909",
+            "name": "Egg",
+            "value": "-1"
+          },
+          {
+            "id": "24910",
+            "name": "Sesame",
+            "value": "-1"
+          },
+          {
+            "id": "24911",
+            "name": "Peanuts",
+            "value": "-1"
+          },
+          {
+            "id": "24912",
+            "name": "Gluten",
+            "value": "-1"
+          },
+          {
+            "id": "24913",
+            "name": "Milk",
+            "value": "-1"
+          }
+        ]
+      },
+      "preferences": {
+        "preference": [
+          {
+            "id": "24914",
+            "name": "Vegan",
+            "value": "-1"
+          },
+          {
+            "id": "24915",
+            "name": "Vegetarian",
+            "value": "-1"
+          }
+        ]
+      }
+    },
+    "servings": {
+      "serving": [
+        {
+          "serving_id": "100675",
+          "serving_description": "1 cup",
+          "serving_url": "https://foods.fatsecret.com/calories-nutrition/general-mills/whole-grain-cheerios",
+          "metric_serving_amount": "30.000",
+          "metric_serving_unit": "g",
+          "number_of_units": "1.000",
+          "measurement_description": "serving",
+          "is_default": "1",
+          "calories": "100",
+          "carbohydrate": "20.00",
+          "protein": "3.00",
+          "fat": "2.00"
+        },
+        {
+          "serving_id": "0",
+          "serving_description": "100 g",
+          "metric_serving_amount": "100.0",
+          "metric_serving_unit": "g",
+          "number_of_units": "100.0",
+          "measurement_description": "g",
+          "calories": "333",
+          "carbohydrate": "66.67",
+          "protein": "10.00",
+          "fat": "6.67"
+        }
+      ]
+    }
+  }
+}

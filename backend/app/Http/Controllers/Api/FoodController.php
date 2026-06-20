@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\FatSecretApiException;
+use App\Exceptions\FatSecretFoodNotFoundException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\FoodBarcodeScanRequest;
 use App\Http\Requests\FoodSearchRequest;
 use App\Http\Requests\StoreFoodLogRequest;
+use App\Http\Resources\FoodBarcodeScanResource;
 use App\Http\Resources\FoodLogItemResource;
 use App\Http\Resources\FoodSearchResultResource;
 use App\Models\User;
@@ -36,6 +39,35 @@ class FoodController extends Controller
         }
 
         return FoodSearchResultResource::collection($results);
+    }
+
+    public function searchByBarcode(FoodBarcodeScanRequest $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        try {
+            $result = $this->foodService->searchByBarcode(
+                $request->validated('barcode'),
+                $user,
+            );
+        } catch (FatSecretFoodNotFoundException) {
+            return response()->json([
+                'message' => 'No product found for this barcode.',
+            ], 404);
+        } catch (FatSecretApiException) {
+            return response()->json([
+                'message' => 'Food search is temporarily unavailable.',
+            ], 502);
+        }
+
+        if ($result === null) {
+            return response()->json([
+                'message' => 'No product found for this barcode.',
+            ], 404);
+        }
+
+        return (new FoodBarcodeScanResource($result))->response();
     }
 
     public function store(StoreFoodLogRequest $request): JsonResponse

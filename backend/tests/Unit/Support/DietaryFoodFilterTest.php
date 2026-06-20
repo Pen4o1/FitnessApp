@@ -89,4 +89,24 @@ class DietaryFoodFilterTest extends TestCase
             ['nut_free'],
         ));
     }
+
+    public function test_conflicts_with_allergies_detects_keyword_match(): void
+    {
+        $this->assertTrue($this->filter->conflictsWithAllergies('Peanut Butter', ['nut_free']));
+    }
+
+    public function test_conflicts_with_allergies_returns_false_when_no_allergies(): void
+    {
+        $this->assertFalse($this->filter->conflictsWithAllergies('Peanut Butter', []));
+    }
+
+    public function test_conflicts_with_dietary_preferences_detects_keyword_match(): void
+    {
+        $this->assertTrue($this->filter->conflictsWithDietaryPreferences('Chicken Breast', ['vegan']));
+    }
+
+    public function test_conflicts_with_dietary_preferences_returns_false_when_no_preferences(): void
+    {
+        $this->assertFalse($this->filter->conflictsWithDietaryPreferences('Chicken Breast', []));
+    }
 }
