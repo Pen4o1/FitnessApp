@@ -69,4 +69,24 @@ class DietaryFoodFilterTest extends TestCase
     {
         $this->assertTrue($this->filter->allows('Apple', ['vegan'], ['nut_free']));
     }
+
+    public function test_rejects_recipe_with_peanut_ingredient_for_nut_free(): void
+    {
+        $this->assertFalse($this->filter->allowsRecipe(
+            'Fruit Bowl',
+            ['Banana', 'Peanut Butter'],
+            [],
+            ['nut_free'],
+        ));
+    }
+
+    public function test_allows_recipe_when_ingredients_match_restrictions(): void
+    {
+        $this->assertTrue($this->filter->allowsRecipe(
+            'Garden Bowl',
+            ['Broccoli', 'Quinoa'],
+            ['vegan'],
+            ['nut_free'],
+        ));
+    }
 }

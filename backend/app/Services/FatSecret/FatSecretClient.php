@@ -43,6 +43,74 @@ class FatSecretClient
         return $payload;
     }
 
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    public function searchRecipes(string $query, int $page = 0, int $maxResults = 20, array $filters = []): array
+    {
+        $params = [
+            'search_expression' => $query,
+            'page_number' => $page,
+            'max_results' => min($maxResults, 50),
+            'format' => 'json',
+            'must_have_images' => 'true',
+            'region' => config('services.fatsecret.region'),
+        ];
+
+        foreach ($filters as $key => $value) {
+            if ($value !== null && $value !== '') {
+                $params[$key] = $value;
+            }
+        }
+
+        $response = Http::withToken($this->getAccessToken())
+            ->acceptJson()
+            ->get($this->apiUrl('recipes/search/v3'), $params);
+
+        if (! $response->successful()) {
+            throw new FatSecretApiException(
+                'FatSecret recipe search request failed with status '.$response->status()
+            );
+        }
+
+        $payload = $response->json();
+
+        if (! is_array($payload)) {
+            throw new FatSecretApiException('FatSecret recipe search returned an invalid response.');
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRecipe(string $recipeId): array
+    {
+        $response = Http::withToken($this->getAccessToken())
+            ->acceptJson()
+            ->get($this->apiUrl('recipe/v2'), [
+                'recipe_id' => $recipeId,
+                'format' => 'json',
+                'region' => config('services.fatsecret.region'),
+            ]);
+
+        if (! $response->successful()) {
+            throw new FatSecretApiException(
+                'FatSecret recipe get request failed with status '.$response->status()
+            );
+        }
+
+        $payload = $response->json();
+
+        if (! is_array($payload)) {
+            throw new FatSecretApiException('FatSecret recipe get returned an invalid response.');
+        }
+
+        return $payload;
+    }
+
     private function getAccessToken(): string
     {
         $cached = Cache::get(self::TOKEN_CACHE_KEY);

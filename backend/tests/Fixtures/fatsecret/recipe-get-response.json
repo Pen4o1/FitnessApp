@@ -1,0 +1,55 @@
+{
+  "recipe": {
+    "recipe_id": "91",
+    "recipe_name": "Baked Lemon Snapper",
+    "recipe_url": "https://foods.fatsecret.com/recipes/baked-lemon-snapper/Default.aspx",
+    "recipe_description": "Healthy fish with a tasty sauce.",
+    "number_of_servings": "4",
+    "grams_per_portion": "194.225",
+    "preparation_time_min": "5",
+    "cooking_time_min": "15",
+    "rating": "4",
+    "recipe_types": {
+      "recipe_type": ["Main Dish"]
+    },
+    "recipe_images": {
+      "recipe_image": [
+        "https://m.ftscrt.com/static/recipe/bf0c5912-9cf8-4e7a-b07a-6703c4b77082.jpg"
+      ]
+    },
+    "serving_sizes": {
+      "serving": {
+        "serving_size": "1 serving",
+        "calories": "177",
+        "carbohydrate": "2.23",
+        "protein": "35.10",
+        "fat": "2.32"
+      }
+    },
+    "ingredients": {
+      "ingredient": [
+        {
+          "food_id": "38065",
+          "food_name": "Snapper (Fish) (Mixed Species)",
+          "serving_id": "47968",
+          "number_of_units": "1.500",
+          "measurement_description": "lb",
+          "ingredient_url": "https://foods.fatsecret.com/calories-nutrition/usda/snapper-(fish)-(mixed-species)?portionid=47968&portionamount=1.500",
+          "ingredient_description": "1 1/2 lbs snapper fillets"
+        }
+      ]
+    },
+    "directions": {
+      "direction": [
+        {
+          "direction_number": "1",
+          "direction_description": "Preheat oven to 390 °F (200 °C)."
+        },
+        {
+          "direction_number": "2",
+          "direction_description": "Place snapper in baking dish and bake for 15 minutes."
+        }
+      ]
+    }
+  }
+}

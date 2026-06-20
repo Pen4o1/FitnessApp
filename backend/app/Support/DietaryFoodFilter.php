@@ -35,6 +35,44 @@ class DietaryFoodFilter
     }
 
     /**
+     * @param  list<string>  $ingredientStrings
+     * @param  list<string>  $dietaryPreferences
+     * @param  list<string>  $allergies
+     */
+    public function allowsRecipe(string $recipeName, array $ingredientStrings, array $dietaryPreferences, array $allergies): bool
+    {
+        $combined = strtolower(trim($recipeName));
+
+        foreach ($ingredientStrings as $ingredient) {
+            if (! is_string($ingredient) || $ingredient === '') {
+                continue;
+            }
+
+            $combined .= ' '.strtolower(trim($ingredient));
+        }
+
+        $combined = trim($combined);
+
+        if ($combined === '') {
+            return false;
+        }
+
+        foreach ($allergies as $allergy) {
+            if ($this->matchesAny($combined, $this->allergyKeywords($allergy))) {
+                return false;
+            }
+        }
+
+        foreach ($dietaryPreferences as $preference) {
+            if ($this->matchesAny($combined, $this->dietaryPreferenceKeywords($preference))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * @return list<string>
      */
     private function allergyKeywords(string $allergy): array

@@ -30,7 +30,7 @@ class MealPlannerController extends Controller
             );
         } catch (FatSecretApiException) {
             return response()->json([
-                'message' => 'Food search is temporarily unavailable.',
+                'message' => 'Recipe search is temporarily unavailable.',
             ], 502);
         }
 

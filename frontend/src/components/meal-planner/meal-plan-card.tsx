@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+import { RecipeDishCard } from '@/components/meal-planner/recipe-dish-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -49,27 +50,15 @@ export function MealPlanCard({ meal }: MealPlanCardProps) {
         <View style={styles.itemsList}>
           {meal.dishes.map((dish, index) => (
             <View
-              key={`${meal.meal_number}-${dish.external_food_id}-${index}`}
+              key={`${meal.meal_number}-${dish.kind}-${'recipe_id' in dish ? dish.recipe_id : dish.external_food_id}-${index}`}
               style={[styles.itemBlock, index > 0 && styles.itemBlockBorder]}>
-              <ThemedText style={styles.itemName}>
-                {dish.food_name}
-                {dish.brand_name ? ` · ${dish.brand_name}` : ''}
-              </ThemedText>
-              <ThemedText themeColor="textSecondary" type="small" style={styles.quantityLine}>
-                {dish.quantity} {dish.serving_unit} ({dish.serving_description})
-              </ThemedText>
-              <ThemedText themeColor="textSecondary" type="small">
-                {dish.calories} kcal · P {dish.protein_g}g · C {dish.carbs_g}g · F {dish.fat_g}g
-              </ThemedText>
+              <RecipeDishCard dish={dish} />
             </View>
           ))}
-          <ThemedText themeColor="textSecondary" type="small" style={styles.instructions}>
-            Serve as listed above to match planned macros.
-          </ThemedText>
         </View>
       ) : (
         <ThemedText themeColor="textSecondary" type="small" style={styles.emptyText}>
-          No matching foods found for this meal.
+          No matching recipes found for this meal.
         </ThemedText>
       )}
     </ThemedView>
@@ -121,18 +110,6 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(128, 128, 128, 0.35)',
     marginTop: Spacing.one,
     paddingTop: Spacing.two,
-  },
-  itemName: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  quantityLine: {
-    lineHeight: 18,
-  },
-  instructions: {
-    fontStyle: 'italic',
-    lineHeight: 18,
-    marginTop: Spacing.one,
   },
   emptyText: {
     fontStyle: 'italic',

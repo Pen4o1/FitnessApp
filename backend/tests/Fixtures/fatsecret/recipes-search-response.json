@@ -1,0 +1,63 @@
+{
+  "recipes": {
+    "max_results": "3",
+    "page_number": "0",
+    "total_results": "42",
+    "recipe": [
+      {
+        "recipe_id": "91",
+        "recipe_name": "Baked Lemon Snapper",
+        "recipe_description": "Healthy fish with a tasty sauce.",
+        "recipe_image": "https://m.ftscrt.com/static/recipe/bf0c5912-9cf8-4e7a-b07a-6703c4b77082.jpg",
+        "recipe_nutrition": {
+          "calories": "177",
+          "carbohydrate": "2.23",
+          "protein": "35.1",
+          "fat": "2.32"
+        },
+        "recipe_ingredients": {
+          "ingredient": ["Lemon", "Snapper"]
+        },
+        "recipe_types": {
+          "recipe_type": ["Main Dish"]
+        }
+      },
+      {
+        "recipe_id": "102",
+        "recipe_name": "Oatmeal Breakfast Bowl",
+        "recipe_description": "Warm oatmeal with fruit.",
+        "recipe_image": "https://m.ftscrt.com/static/recipe/oatmeal-breakfast.jpg",
+        "recipe_nutrition": {
+          "calories": "320",
+          "carbohydrate": "45",
+          "protein": "12",
+          "fat": "8"
+        },
+        "recipe_ingredients": {
+          "ingredient": ["Oatmeal", "Banana", "Milk"]
+        },
+        "recipe_types": {
+          "recipe_type": ["Breakfast"]
+        }
+      },
+      {
+        "recipe_id": "203",
+        "recipe_name": "Chicken Rice Bowl",
+        "recipe_description": "Simple chicken and rice.",
+        "recipe_image": "https://m.ftscrt.com/static/recipe/chicken-rice.jpg",
+        "recipe_nutrition": {
+          "calories": "450",
+          "carbohydrate": "40",
+          "protein": "35",
+          "fat": "12"
+        },
+        "recipe_ingredients": {
+          "ingredient": ["Chicken Breast", "Rice", "Vegetables"]
+        },
+        "recipe_types": {
+          "recipe_type": ["Main Dish", "Lunch"]
+        }
+      }
+    ]
+  }
+}

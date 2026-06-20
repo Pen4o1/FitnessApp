@@ -15,6 +15,7 @@ class PlannedFoodItemResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'kind' => 'food',
             'external_food_id' => $this->resource['external_food_id'],
             'external_source' => $this->resource['external_source'],
             'food_name' => $this->resource['food_name'],

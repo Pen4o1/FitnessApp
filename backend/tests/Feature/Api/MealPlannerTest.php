@@ -83,6 +83,7 @@ class MealPlannerTest extends TestCase
                         'totals' => ['calories', 'protein_g', 'carbs_g', 'fat_g'],
                         'dishes' => [
                             '*' => [
+                                'kind',
                                 'external_food_id',
                                 'external_source',
                                 'food_name',
@@ -91,12 +92,18 @@ class MealPlannerTest extends TestCase
                                 'protein_g',
                                 'carbs_g',
                                 'fat_g',
-                                'servings',
                             ],
                         ],
                     ],
                 ],
             ]);
+
+        $firstDish = $response->json('meals.0.dishes.0');
+        $this->assertSame('recipe', $firstDish['kind']);
+        $this->assertArrayHasKey('recipe_id', $firstDish);
+        $this->assertArrayHasKey('portions', $firstDish);
+        $this->assertArrayHasKey('image_url', $firstDish);
+        $this->assertArrayHasKey('directions', $firstDish);
 
         $targetCalories = $response->json('targets.calories');
         $totalCalories = $response->json('totals.calories');
@@ -152,7 +159,7 @@ class MealPlannerTest extends TestCase
                 'access_token' => 'test-token',
                 'expires_in' => 3600,
             ], 200),
-            'platform.fatsecret.com/rest/foods/search/v5*' => Http::response([], 500),
+            'platform.fatsecret.com/rest/recipes/search/v3*' => Http::response([], 500),
         ]);
 
         $user = User::factory()->create();
@@ -166,7 +173,7 @@ class MealPlannerTest extends TestCase
         $response = $this->getJson('/api/meal-planner/generate');
 
         $response->assertStatus(502)
-            ->assertJsonPath('message', 'Food search is temporarily unavailable.');
+            ->assertJsonPath('message', 'Recipe search is temporarily unavailable.');
     }
 
     public function test_generate_excludes_foods_matching_nut_free_allergy(): void
@@ -241,8 +248,22 @@ class MealPlannerTest extends TestCase
 
     private function fakeFatSecretResponses(): void
     {
-        $searchResponse = json_decode(
+        $foodSearchResponse = json_decode(
             file_get_contents(base_path('tests/Fixtures/fatsecret/search-response.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
+        $recipeSearchResponse = json_decode(
+            file_get_contents(base_path('tests/Fixtures/fatsecret/recipes-search-response.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
+        $recipeGetResponse = json_decode(
+            file_get_contents(base_path('tests/Fixtures/fatsecret/recipe-get-response.json')),
             true,
             512,
             JSON_THROW_ON_ERROR
@@ -253,20 +274,22 @@ class MealPlannerTest extends TestCase
                 'access_token' => 'test-token',
                 'expires_in' => 3600,
             ], 200),
-            'platform.fatsecret.com/rest/foods/search/v5*' => Http::response($searchResponse, 200),
+            'platform.fatsecret.com/rest/recipes/search/v3*' => Http::response($recipeSearchResponse, 200),
+            'platform.fatsecret.com/rest/recipe/v2*' => Http::response($recipeGetResponse, 200),
+            'platform.fatsecret.com/rest/foods/search/v5*' => Http::response($foodSearchResponse, 200),
         ]);
     }
 
     private function fakeFatSecretResponsesWithPeanutButter(): void
     {
-        $searchResponse = json_decode(
+        $foodSearchResponse = json_decode(
             file_get_contents(base_path('tests/Fixtures/fatsecret/search-response.json')),
             true,
             512,
             JSON_THROW_ON_ERROR
         );
 
-        $searchResponse['foods_search']['results']['food'][] = [
+        $foodSearchResponse['foods_search']['results']['food'][] = [
             'food_id' => '5555',
             'food_name' => 'Peanut Butter',
             'food_type' => 'Generic',
@@ -286,12 +309,47 @@ class MealPlannerTest extends TestCase
             ],
         ];
 
+        $recipeSearchResponse = json_decode(
+            file_get_contents(base_path('tests/Fixtures/fatsecret/recipes-search-response.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
+        $recipeSearchResponse['recipes']['recipe'][] = [
+            'recipe_id' => '999',
+            'recipe_name' => 'Peanut Butter Smoothie',
+            'recipe_description' => 'Creamy peanut smoothie.',
+            'recipe_image' => 'https://m.ftscrt.com/static/recipe/peanut-smoothie.jpg',
+            'recipe_nutrition' => [
+                'calories' => '400',
+                'carbohydrate' => '30',
+                'protein' => '20',
+                'fat' => '22',
+            ],
+            'recipe_ingredients' => [
+                'ingredient' => ['Peanut Butter', 'Milk'],
+            ],
+            'recipe_types' => [
+                'recipe_type' => ['Snack'],
+            ],
+        ];
+
+        $recipeGetResponse = json_decode(
+            file_get_contents(base_path('tests/Fixtures/fatsecret/recipe-get-response.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
         Http::fake([
             'oauth.fatsecret.com/connect/token' => Http::response([
                 'access_token' => 'test-token',
                 'expires_in' => 3600,
             ], 200),
-            'platform.fatsecret.com/rest/foods/search/v5*' => Http::response($searchResponse, 200),
+            'platform.fatsecret.com/rest/recipes/search/v3*' => Http::response($recipeSearchResponse, 200),
+            'platform.fatsecret.com/rest/recipe/v2*' => Http::response($recipeGetResponse, 200),
+            'platform.fatsecret.com/rest/foods/search/v5*' => Http::response($foodSearchResponse, 200),
         ]);
     }
 }

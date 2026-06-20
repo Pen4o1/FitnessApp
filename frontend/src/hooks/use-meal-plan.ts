@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 
 import { ApiError, generateMealPlan } from '@/lib/api';
+import { normalizeMealPlan } from '@/lib/meal-plan';
 import type { MealPlan } from '@/types/meal-plan';
 
 function formatGenerateError(error: unknown): string {
@@ -30,7 +31,7 @@ export function useMealPlan() {
 
     try {
       const result = await generateMealPlan({ mealsCount });
-      setPlan(result);
+      setPlan(normalizeMealPlan(result));
     } catch (caught) {
       setPlan(null);
       setError(formatGenerateError(caught));
