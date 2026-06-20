@@ -1,9 +1,11 @@
 import { useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MealPlanCard } from '@/components/meal-planner/meal-plan-card';
-import { Collapsible } from '@/components/ui/collapsible';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -40,11 +42,19 @@ type SavedMealPlanItemProps = {
 
 function SavedMealPlanItem({ summary }: SavedMealPlanItemProps) {
   const theme = useTheme();
+  const [isExpanded, setIsExpanded] = useState(false);
   const [detail, setDetail] = useState<SavedMealPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadDetail() {
+  async function toggleExpanded() {
+    if (isExpanded) {
+      setIsExpanded(false);
+      return;
+    }
+
+    setIsExpanded(true);
+
     if (detail !== null || isLoading) {
       return;
     }
@@ -65,64 +75,101 @@ function SavedMealPlanItem({ summary }: SavedMealPlanItemProps) {
     }
   }
 
-  const title = `${formatPlanDate(summary.plan_date)} · ${summary.meals_count} meals`;
-
   return (
-    <ThemedView type="backgroundElement" style={styles.planCard}>
-      <Collapsible title={title}>
-        <View style={styles.planMeta}>
-          <ThemedText type="small">
-            {summary.totals.calories} kcal · P {summary.totals.protein_g}g · C{' '}
-            {summary.totals.carbs_g}g · F {summary.totals.fat_g}g
-          </ThemedText>
+    <Animated.View 
+      layout={LinearTransition.duration(200)}
+      style={[styles.planCard, { backgroundColor: theme.backgroundElement }]}>
+      <Pressable
+        onPress={toggleExpanded}
+        style={({ pressed }) => [styles.planHeader, pressed && styles.pressed]}>
+        <View style={styles.planHeaderContent}>
+          <View style={styles.planTitleRow}>
+            <SymbolView 
+              name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} 
+              size={18} 
+              tintColor={theme.text} 
+            />
+            <ThemedText type="default" style={styles.planTitle}>
+              {formatPlanDate(summary.plan_date)}
+            </ThemedText>
+          </View>
           <ThemedText themeColor="textSecondary" type="small">
-            Saved {formatSavedAt(summary.created_at)}
+            {summary.meals_count} meals
           </ThemedText>
         </View>
 
-        {isLoading ? (
-          <ActivityIndicator color={theme.neonGreen} style={styles.loader} />
-        ) : null}
+        <View style={[styles.iconButton, { backgroundColor: theme.backgroundSelected }]}>
+          <SymbolView
+            name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+            size={16}
+            weight="bold"
+            tintColor={theme.textSecondary}
+            style={{ transform: [{ rotate: isExpanded ? '-90deg' : '90deg' }] }}
+          />
+        </View>
+      </Pressable>
 
-        {error ? (
-          <ThemedText type="small" style={styles.errorText}>
-            {error}
+      <View style={styles.planMeta}>
+        <View style={styles.macrosRow}>
+          <ThemedText type="smallBold" style={{ color: theme.neonGreen }}>
+            {summary.totals.calories} kcal
           </ThemedText>
-        ) : null}
+          <ThemedText type="small" style={{ color: theme.protein }}>
+            P {summary.totals.protein_g}g
+          </ThemedText>
+          <ThemedText type="small" style={{ color: theme.carbs }}>
+            C {summary.totals.carbs_g}g
+          </ThemedText>
+          <ThemedText type="small" style={{ color: theme.fat }}>
+            F {summary.totals.fat_g}g
+          </ThemedText>
+        </View>
+        <ThemedText themeColor="textSecondary" type="small" style={styles.savedAt}>
+          Saved {formatSavedAt(summary.created_at)}
+        </ThemedText>
+      </View>
 
-        {detail ? (
-          <View style={styles.mealsList}>
-            {detail.meals.map((meal) => (
-              <MealPlanCard key={`${summary.id}-${meal.meal_number}`} meal={meal} />
-            ))}
-          </View>
-        ) : (
-          <Pressable
-            disabled={isLoading}
-            onPress={loadDetail}
-            style={({ pressed }) => [styles.loadButton, pressed && styles.pressed]}>
-            <ThemedText type="smallBold" style={{ color: theme.neonGreen }}>
-              View full plan
+      {isExpanded && (
+        <Animated.View entering={FadeIn.duration(200)}>
+          <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
+          
+          {isLoading ? (
+            <ActivityIndicator color={theme.neonGreen} style={styles.loader} />
+          ) : null}
+
+          {error ? (
+            <ThemedText type="small" style={styles.errorText}>
+              {error}
             </ThemedText>
-          </Pressable>
-        )}
-      </Collapsible>
-    </ThemedView>
+          ) : null}
+
+          {detail ? (
+            <View style={styles.mealsList}>
+              {detail.meals.map((meal) => (
+                <MealPlanCard key={`${summary.id}-${meal.meal_number}`} meal={meal} />
+              ))}
+            </View>
+          ) : null}
+        </Animated.View>
+      )}
+    </Animated.View>
   );
 }
 
 export function SavedMealPlansSection() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [plans, setPlans] = useState<SavedMealPlanSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSheetVisible, setIsSheetVisible] = useState(false);
 
   const loadPlans = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const items = await getSavedMealPlans(10);
+      const items = await getSavedMealPlans(50);
       setPlans(items);
     } catch {
       setError('Could not load your saved meal plans.');
@@ -139,12 +186,14 @@ export function SavedMealPlansSection() {
 
   return (
     <ThemedView type="backgroundElement" style={styles.section}>
-      <ThemedText type="smallBold" style={styles.sectionTitle}>
-        Saved meal plans
-      </ThemedText>
-      <ThemedText themeColor="textSecondary" type="small" style={styles.sectionHint}>
-        Plans you save from the AI meal planner appear here.
-      </ThemedText>
+      <View style={styles.sectionHeader}>
+        <ThemedText type="smallBold" style={styles.sectionTitle}>
+          Saved meal plans
+        </ThemedText>
+        <ThemedText themeColor="textSecondary" type="small" style={styles.sectionHint}>
+          Plans you save from the AI meal planner appear here.
+        </ThemedText>
+      </View>
 
       {isLoading ? (
         <ActivityIndicator color={theme.accent} style={styles.sectionLoader} />
@@ -157,11 +206,51 @@ export function SavedMealPlansSection() {
           No saved meal plans yet. Generate a plan and tap “Save to Profile”.
         </ThemedText>
       ) : (
-        <View style={styles.plansList}>
-          {plans.map((plan) => (
-            <SavedMealPlanItem key={plan.id} summary={plan} />
-          ))}
-        </View>
+        <>
+          <Pressable
+            onPress={() => setIsSheetVisible(true)}
+            style={({ pressed }) => [
+              styles.viewAllButton,
+              { backgroundColor: theme.backgroundSelected },
+              pressed && styles.pressed,
+            ]}>
+            <SymbolView 
+              name={{ ios: 'list.bullet', android: 'list', web: 'list' }} 
+              size={18} 
+              tintColor={theme.text} 
+            />
+            <ThemedText type="smallBold">
+              View {plans.length} saved {plans.length === 1 ? 'plan' : 'plans'}
+            </ThemedText>
+          </Pressable>
+
+          <Modal animationType="slide" transparent visible={isSheetVisible} onRequestClose={() => setIsSheetVisible(false)}>
+            <View style={styles.sheetBackdrop}>
+              <View style={[styles.sheetContent, { backgroundColor: theme.background, paddingBottom: insets.bottom }]}>
+                <View style={styles.sheetHeader}>
+                  <View style={styles.sheetHeaderTitles}>
+                    <ThemedText type="subtitle" style={styles.sheetTitle}>
+                      Saved Plans
+                    </ThemedText>
+                    <ThemedText themeColor="textSecondary" type="small">
+                      Your meal plan history
+                    </ThemedText>
+                  </View>
+                  <Pressable onPress={() => setIsSheetVisible(false)} style={styles.closeButton}>
+                    <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={24} tintColor={theme.text} />
+                  </Pressable>
+                </View>
+                <ScrollView contentContainerStyle={styles.sheetScroll} showsVerticalScrollIndicator={false}>
+                  <View style={styles.plansList}>
+                    {plans.map((plan) => (
+                      <SavedMealPlanItem key={plan.id} summary={plan} />
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+        </>
       )}
     </ThemedView>
   );
@@ -182,24 +271,71 @@ const styles = StyleSheet.create({
   sectionLoader: {
     marginTop: Spacing.two,
   },
-  plansList: {
+  sectionHeader: {
+    gap: Spacing.one,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.two,
+    paddingVertical: Spacing.three,
+    borderRadius: Spacing.three,
+    marginTop: Spacing.one,
+  },
+  plansList: {
+    gap: Spacing.three,
     marginTop: Spacing.one,
   },
   planCard: {
     borderRadius: Spacing.three,
-    padding: Spacing.two,
+    padding: Spacing.three,
+    borderWidth: 1,
+    borderColor: 'rgba(128, 128, 128, 0.15)',
+  },
+  planHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.two,
+  },
+  planHeaderContent: {
+    gap: 2,
+  },
+  planTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
+  planTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   planMeta: {
-    gap: Spacing.half,
-    marginBottom: Spacing.two,
+    gap: Spacing.one,
+  },
+  macrosRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.three,
+  },
+  savedAt: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    marginVertical: Spacing.three,
   },
   mealsList: {
     gap: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  loadButton: {
-    paddingVertical: Spacing.one,
   },
   loader: {
     marginVertical: Spacing.two,
@@ -213,6 +349,40 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   pressed: {
-    opacity: 0.85,
+    opacity: 0.7,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  sheetContent: {
+    borderTopLeftRadius: Spacing.four,
+    borderTopRightRadius: Spacing.four,
+    height: '85%',
+    paddingTop: Spacing.four,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four,
+    marginBottom: Spacing.three,
+  },
+  sheetHeaderTitles: {
+    gap: Spacing.half,
+  },
+  sheetTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  closeButton: {
+    padding: Spacing.one,
+    marginRight: -Spacing.one,
+    marginTop: -Spacing.one,
+  },
+  sheetScroll: {
+    paddingHorizontal: Spacing.four,
+    paddingBottom: Spacing.five,
   },
 });

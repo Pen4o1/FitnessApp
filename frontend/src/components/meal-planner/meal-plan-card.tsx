@@ -96,6 +96,7 @@ const styles = StyleSheet.create({
   },
   macrosRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.three,
   },
   itemsList: {
