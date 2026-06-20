@@ -1,7 +1,7 @@
 import { clearToken, getToken, setToken } from '@/lib/auth-storage';
 import type { UserPreferences } from '@/types/dietary';
 import type { WeeklyDaySummary } from '@/types/analytics';
-import type { MealPlan } from '@/types/meal-plan';
+import type { MealPlan, SavedMealPlan, SavedMealPlanSummary } from '@/types/meal-plan';
 import type { DailySummary, FoodLogItem, FoodSearchResult, MealType } from '@/types/nutrition';
 import type {
   ActivityLevel,
@@ -212,6 +212,38 @@ export async function generateMealPlan(options?: {
   const query = params.toString() ? `?${params.toString()}` : '';
 
   return apiFetch<MealPlan>(`/api/meal-planner/generate${query}`);
+}
+
+export async function saveMealPlan(date: string, plan: MealPlan): Promise<SavedMealPlan> {
+  return apiFetch<SavedMealPlan>('/api/meal-planner/save', {
+    method: 'POST',
+    body: JSON.stringify({ date, plan }),
+  });
+}
+
+export async function logMealPlanToDiary(date: string, plan: MealPlan): Promise<void> {
+  await apiFetch<{ message: string }>('/api/meal-planner/log', {
+    method: 'POST',
+    body: JSON.stringify({ date, plan }),
+  });
+}
+
+type SavedMealPlanListResponse = SavedMealPlanSummary[] | { data: SavedMealPlanSummary[] };
+
+export async function getSavedMealPlans(limit = 20): Promise<SavedMealPlanSummary[]> {
+  const response = await apiFetch<SavedMealPlanListResponse>(
+    `/api/meal-plans?limit=${encodeURIComponent(String(limit))}`,
+  );
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? [];
+}
+
+export async function getSavedMealPlan(id: number): Promise<SavedMealPlan> {
+  return apiFetch<SavedMealPlan>(`/api/meal-plans/${id}`);
 }
 
 export async function getDailySummary(date?: string): Promise<DailySummary> {

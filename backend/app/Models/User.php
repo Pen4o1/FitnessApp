@@ -60,6 +60,11 @@ class User extends Authenticatable
         return $this->hasMany(DailyLog::class);
     }
 
+    public function savedMealPlans(): HasMany
+    {
+        return $this->hasMany(SavedMealPlan::class);
+    }
+
     public function isProfileComplete(): bool
     {
         return $this->profile_completed_at !== null;

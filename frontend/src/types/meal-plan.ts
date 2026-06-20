@@ -83,6 +83,23 @@ export type MealPlan = {
   meals: PlannedMeal[];
 };
 
+export type SavedMealPlanSummary = {
+  id: number;
+  plan_date: string;
+  meals_count: number;
+  totals: MacroTotals;
+  within_target: boolean;
+  logged_to_diary_at: string | null;
+  created_at: string;
+};
+
+export type SavedMealPlan = MealPlan & {
+  id: number;
+  plan_date: string;
+  logged_to_diary_at: string | null;
+  created_at: string;
+};
+
 export function isPlannedRecipeItem(dish: PlannedDish): dish is PlannedRecipeItem {
   return dish.kind === 'recipe';
 }

@@ -18,8 +18,7 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useMealPlan } from '@/hooks/use-meal-plan';
 import { useTheme } from '@/hooks/use-theme';
-import { ApiError, logFood } from '@/lib/api';
-import { logMealPlanToDiary } from '@/lib/meal-plan';
+import { ApiError, logMealPlanToDiary, saveMealPlan } from '@/lib/api';
 import type { MealPlan } from '@/types/meal-plan';
 
 type MealPlannerScreenProps = {
@@ -44,25 +43,57 @@ export function MealPlannerScreen({ date }: MealPlannerScreenProps) {
   const theme = useTheme();
   const { plan, isGenerating, error, generate } = useMealPlan();
   const [mealsCount, setMealsCount] = useState(4);
-  const [isLogging, setIsLogging] = useState(false);
-  const [logError, setLogError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoggingToDiary, setIsLoggingToDiary] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function handleGenerate() {
     await generate(mealsCount);
   }
 
-  async function handleLogEntirePlan() {
+  async function handleSaveToProfile() {
     if (!plan || !hasLoggableItems(plan)) {
       return;
     }
 
-    setIsLogging(true);
-    setLogError(null);
+    setIsSaving(true);
+    setActionError(null);
 
     try {
-      await logMealPlanToDiary(plan, date, logFood);
+      await saveMealPlan(date, plan);
 
-      Alert.alert('Success', 'Your meal plan was logged to your diary.', [
+      Alert.alert('Saved', 'Your meal plan was saved to your profile.', [
+        {
+          text: 'View Profile',
+          onPress: () => router.replace('/(app)/(tabs)/profile'),
+        },
+        { text: 'OK' },
+      ]);
+    } catch (caught) {
+      const message =
+        caught instanceof ApiError
+          ? caught.message
+          : 'Could not save your meal plan. Please try again.';
+
+      setActionError(message);
+      Alert.alert('Could not save plan', message);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleLogToDiary() {
+    if (!plan || !hasLoggableItems(plan)) {
+      return;
+    }
+
+    setIsLoggingToDiary(true);
+    setActionError(null);
+
+    try {
+      await logMealPlanToDiary(date, plan);
+
+      Alert.alert('Logged', 'Calories were added to your diary for this day.', [
         {
           text: 'OK',
           onPress: () => router.replace('/(app)/(tabs)'),
@@ -72,14 +103,17 @@ export function MealPlannerScreen({ date }: MealPlannerScreenProps) {
       const message =
         caught instanceof ApiError
           ? caught.message
-          : 'Could not log your meal plan. Please try again.';
+          : 'Could not log your meal plan to the diary. Please try again.';
 
-      setLogError(message);
-      Alert.alert('Could not log plan', message);
+      setActionError(message);
+      Alert.alert('Could not log to diary', message);
     } finally {
-      setIsLogging(false);
+      setIsLoggingToDiary(false);
     }
   }
+
+  const isActionPending = isSaving || isLoggingToDiary;
+  const canActOnPlan = plan !== null && hasLoggableItems(plan);
 
   return (
     <ThemedView style={styles.container}>
@@ -171,28 +205,51 @@ export function MealPlannerScreen({ date }: MealPlannerScreenProps) {
               </View>
 
               <Pressable
-                disabled={isLogging || !hasLoggableItems(plan)}
-                onPress={handleLogEntirePlan}
+                disabled={isActionPending || !canActOnPlan}
+                onPress={handleSaveToProfile}
+                style={({ pressed }) => [
+                  styles.saveButton,
+                  { backgroundColor: theme.neonGreen },
+                  (isActionPending || !canActOnPlan) && styles.disabledButton,
+                  pressed && !isActionPending && canActOnPlan && styles.pressed,
+                ]}>
+                {isSaving ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <ThemedText type="smallBold" style={styles.saveButtonText}>
+                    Save to Profile
+                  </ThemedText>
+                )}
+              </Pressable>
+
+              <Pressable
+                disabled={isActionPending || !canActOnPlan}
+                onPress={handleLogToDiary}
                 style={({ pressed }) => [
                   styles.logButton,
                   { borderColor: theme.neonGreen },
-                  (isLogging || !hasLoggableItems(plan)) && styles.disabledButton,
-                  pressed && !isLogging && hasLoggableItems(plan) && styles.pressed,
+                  (isActionPending || !canActOnPlan) && styles.disabledButton,
+                  pressed && !isActionPending && canActOnPlan && styles.pressed,
                 ]}>
-                {isLogging ? (
+                {isLoggingToDiary ? (
                   <ActivityIndicator color={theme.neonGreen} />
                 ) : (
                   <ThemedText
                     type="smallBold"
                     style={[styles.logButtonText, { color: theme.neonGreen }]}>
-                    Log Entire Plan to My Diary
+                    Add Calories to Diary
                   </ThemedText>
                 )}
               </Pressable>
 
-              {logError ? (
+              <ThemedText themeColor="textSecondary" type="small" style={styles.actionHint}>
+                Save keeps the plan in your profile only. Add to diary counts these meals toward
+                your daily calories.
+              </ThemedText>
+
+              {actionError ? (
                 <ThemedText style={[styles.errorText, { color: theme.warning }]}>
-                  {logError}
+                  {actionError}
                 </ThemedText>
               ) : null}
             </View>
@@ -272,7 +329,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   planContent: {
-    gap: Spacing.four,
+    gap: Spacing.three,
   },
   summaryCard: {
     borderRadius: Spacing.four,
@@ -297,6 +354,17 @@ const styles = StyleSheet.create({
   mealsList: {
     gap: Spacing.three,
   },
+  saveButton: {
+    borderRadius: Spacing.three,
+    paddingVertical: Spacing.three,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
   logButton: {
     borderRadius: Spacing.three,
     paddingVertical: Spacing.three,
@@ -307,6 +375,11 @@ const styles = StyleSheet.create({
   },
   logButtonText: {
     fontSize: 16,
+  },
+  actionHint: {
+    textAlign: 'center',
+    lineHeight: 20,
+    fontSize: 13,
   },
   emptyState: {
     borderRadius: Spacing.four,

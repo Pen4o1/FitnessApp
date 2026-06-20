@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BirthdatePicker } from '@/components/profile/birthdate-picker';
 import { DietaryPreferencesSection } from '@/components/profile/dietary-preferences-section';
+import { SavedMealPlansSection } from '@/components/profile/saved-meal-plans-section';
 import { OptionChipGroup } from '@/components/profile/option-chip-group';
 import { TargetPreviewCard } from '@/components/profile/target-preview-card';
 import { ThemedText } from '@/components/themed-text';
@@ -363,6 +364,8 @@ export function ProfileScreen() {
             </ThemedView>
 
             <DietaryPreferencesSection />
+
+            <SavedMealPlansSection />
 
             {error ? (
               <ThemedText type="small" style={styles.errorText}>
