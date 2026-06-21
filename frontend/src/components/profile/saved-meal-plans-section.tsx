@@ -1,7 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +12,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, getSavedMealPlan, getSavedMealPlans } from '@/lib/api';
 import { normalizeMealPlan } from '@/lib/meal-plan';
+import { SavedMealPlansSkeleton } from '@/components/ui/saved-meal-plans-skeleton';
 import type { SavedMealPlan, SavedMealPlanSummary } from '@/types/meal-plan';
 
 function formatPlanDate(dateString: string): string {
@@ -134,7 +135,7 @@ function SavedMealPlanItem({ summary }: SavedMealPlanItemProps) {
           <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
           
           {isLoading ? (
-            <ActivityIndicator color={theme.neonGreen} style={styles.loader} />
+            <SavedMealPlansSkeleton cards={1} />
           ) : null}
 
           {error ? (
@@ -196,7 +197,7 @@ export function SavedMealPlansSection() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator color={theme.accent} style={styles.sectionLoader} />
+        <SavedMealPlansSkeleton cards={2} />
       ) : error ? (
         <ThemedText type="small" style={styles.errorText}>
           {error}

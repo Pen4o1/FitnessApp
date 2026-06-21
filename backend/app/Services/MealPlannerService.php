@@ -582,15 +582,7 @@ class MealPlannerService
             return;
         }
 
-        $details = [];
-
-        foreach (array_keys($recipeIds) as $recipeId) {
-            $detail = $this->recipeService->get($recipeId);
-
-            if ($detail !== null) {
-                $details[$recipeId] = $detail;
-            }
-        }
+        $details = $this->recipeService->getMany(array_keys($recipeIds));
 
         foreach ($meals as &$meal) {
             foreach ($meal['dishes'] as &$dish) {

@@ -66,6 +66,64 @@ class DailyLogService
     }
 
     /**
+     * @param  list<array{
+     *     date: string,
+     *     meal_type: string,
+     *     quantity: float|int|string,
+     *     serving_unit: string,
+     *     serving_description: string,
+     *     base_quantity: float|int|string,
+     *     external_food_id: string,
+     *     external_source: string,
+     *     food_name: string,
+     *     brand_name?: string|null,
+     *     calories_per_base: int,
+     *     protein_g_per_base: float|int|string,
+     *     carbs_g_per_base: float|int|string,
+     *     fat_g_per_base: float|int|string
+     * }>  $items
+     */
+    public function logFoodBatch(User $user, string $date, array $items): void
+    {
+        if ($items === []) {
+            return;
+        }
+
+        $dailyLog = $this->getOrCreateDailyLog($user, $date);
+
+        foreach ($items as $data) {
+            $mealEntry = $this->getOrCreateMealEntry($dailyLog, MealType::from($data['meal_type']));
+
+            $quantity = (float) $data['quantity'];
+            $baseQuantity = (float) $data['base_quantity'];
+            $factor = $quantity / $baseQuantity;
+
+            $mealEntry->foodLogItems()->create([
+                'food_name' => $data['food_name'],
+                'brand_name' => $data['brand_name'] ?? null,
+                'external_food_id' => $data['external_food_id'],
+                'external_source' => FoodExternalSource::from($data['external_source']),
+                'quantity' => $quantity,
+                'serving_unit' => $data['serving_unit'],
+                'serving_description' => $data['serving_description'],
+                'calories' => (int) round($data['calories_per_base'] * $factor),
+                'protein_g' => round((float) $data['protein_g_per_base'] * $factor, 2),
+                'carbs_g' => round((float) $data['carbs_g_per_base'] * $factor, 2),
+                'fat_g' => round((float) $data['fat_g_per_base'] * $factor, 2),
+                'source_metadata' => [
+                    'base_quantity' => $baseQuantity,
+                    'calories_per_base' => $data['calories_per_base'],
+                    'protein_g_per_base' => (float) $data['protein_g_per_base'],
+                    'carbs_g_per_base' => (float) $data['carbs_g_per_base'],
+                    'fat_g_per_base' => (float) $data['fat_g_per_base'],
+                ],
+            ]);
+        }
+
+        $dailyLog->recalculateTotals();
+    }
+
+    /**
      * @return array{
      *     date: string,
      *     targets: array{calories: int, protein_g: float, carbs_g: float, fat_g: float},

@@ -7,9 +7,14 @@ use App\Enums\FoodExternalSource;
 use App\Models\User;
 use App\Services\FatSecret\FatSecretClient;
 use App\Support\DietaryFoodFilter;
+use Illuminate\Support\Facades\Cache;
 
 class FoodService
 {
+    private const SEARCH_CACHE_TTL_SECONDS = 86_400;
+
+    private const BARCODE_CACHE_TTL_SECONDS = 86_400;
+
     public function __construct(
         private readonly FatSecretClient $fatSecretClient,
         private readonly UserPreferencesService $userPreferencesService,
@@ -45,7 +50,32 @@ class FoodService
      */
     public function search(string $query, int $page = 0, int $maxResults = 20): array
     {
-        $response = $this->fatSecretClient->searchFoods(trim($query), $page, $maxResults);
+        $normalizedQuery = trim($query);
+
+        if ($normalizedQuery === '') {
+            return [];
+        }
+
+        $cacheKey = sprintf(
+            'food_search:%s:%d:%d',
+            md5(strtolower($normalizedQuery)),
+            $page,
+            $maxResults,
+        );
+
+        return Cache::remember(
+            $cacheKey,
+            self::SEARCH_CACHE_TTL_SECONDS,
+            fn (): array => $this->performSearch($normalizedQuery, $page, $maxResults),
+        );
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function performSearch(string $query, int $page, int $maxResults): array
+    {
+        $response = $this->fatSecretClient->searchFoods($query, $page, $maxResults);
         $foods = data_get($response, 'foods_search.results.food', []);
 
         if (! is_array($foods)) {
@@ -97,8 +127,18 @@ class FoodService
     public function searchByBarcode(string $barcode, User $user): ?array
     {
         $gtin13 = $this->normalizeBarcodeToGtin13($barcode);
-        $response = $this->fatSecretClient->findFoodByBarcode($gtin13);
-        $food = data_get($response, 'food');
+        $cacheKey = 'food_barcode_raw:'.md5($gtin13);
+
+        $food = Cache::remember(
+            $cacheKey,
+            self::BARCODE_CACHE_TTL_SECONDS,
+            function () use ($gtin13): ?array {
+                $response = $this->fatSecretClient->findFoodByBarcode($gtin13);
+                $payload = data_get($response, 'food');
+
+                return is_array($payload) ? $payload : null;
+            },
+        );
 
         if (! is_array($food)) {
             return null;

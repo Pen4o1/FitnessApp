@@ -58,7 +58,13 @@ function RecipeDishContent({ dish }: { dish: PlannedRecipeItem }) {
     <View style={styles.recipeBlock}>
       <View style={styles.heroRow}>
         {dish.image_url ? (
-          <Image source={{ uri: dish.image_url }} style={styles.thumbnail} contentFit="cover" />
+          <Image
+            source={{ uri: dish.image_url }}
+            style={styles.thumbnail}
+            contentFit="cover"
+            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+            transition={300}
+          />
         ) : (
           <View style={[styles.thumbnailPlaceholder, { borderColor: theme.neonGreen + '44' }]}>
             <ThemedText themeColor="textSecondary" type="small">No image</ThemedText>

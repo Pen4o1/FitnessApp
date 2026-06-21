@@ -1,6 +1,5 @@
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChartCard } from '@/components/analytics/chart-card';
@@ -9,6 +8,7 @@ import { WeeklyCalorieChart } from '@/components/analytics/weekly-calorie-chart'
 import { WeeklyWeightChart } from '@/components/analytics/weekly-weight-chart';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AnalyticsSkeleton } from '@/components/ui/analytics-skeleton';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useWeeklyAnalytics } from '@/hooks/use-weekly-analytics';
@@ -26,23 +26,8 @@ export function AnalyticsScreen() {
   const hasCalories = useMemo(() => (days ? hasCalorieData(days) : false), [days]);
   const hasWeight = useMemo(() => (days ? hasWeightData(days) : false), [days]);
 
-  useFocusEffect(
-    useCallback(() => {
-      void refresh();
-    }, [refresh]),
-  );
-
   if (isLoading && !days) {
-    return (
-      <ThemedView style={styles.container}>
-        <SafeAreaView style={styles.centeredState} edges={['top']}>
-          <ActivityIndicator color={theme.success} size="large" />
-          <ThemedText themeColor="textSecondary" style={styles.loadingText}>
-            Loading your progress...
-          </ThemedText>
-        </SafeAreaView>
-      </ThemedView>
-    );
+    return <AnalyticsSkeleton />;
   }
 
   if (!days) {

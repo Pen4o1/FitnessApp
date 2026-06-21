@@ -37,10 +37,11 @@ class FoodLogTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('food_name', 'Chicken Breast')
-            ->assertJsonPath('quantity', 150)
-            ->assertJsonPath('calories', 293)
-            ->assertJsonPath('protein_g', 44.33);
+            ->assertJsonPath('item.food_name', 'Chicken Breast')
+            ->assertJsonPath('item.quantity', 150)
+            ->assertJsonPath('item.calories', 293)
+            ->assertJsonPath('item.protein_g', 44.33)
+            ->assertJsonPath('consumed.calories', 293);
 
         $this->assertDatabaseHas('food_log_items', [
             'food_name' => 'Chicken Breast',
@@ -75,12 +76,12 @@ class FoodLogTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('food_name', 'Egg')
-            ->assertJsonPath('quantity', 2)
-            ->assertJsonPath('serving_unit', 'large')
-            ->assertJsonPath('serving_description', '1 large')
-            ->assertJsonPath('calories', 144)
-            ->assertJsonPath('protein_g', 12.58);
+            ->assertJsonPath('item.food_name', 'Egg')
+            ->assertJsonPath('item.quantity', 2)
+            ->assertJsonPath('item.serving_unit', 'large')
+            ->assertJsonPath('item.serving_description', '1 large')
+            ->assertJsonPath('item.calories', 144)
+            ->assertJsonPath('item.protein_g', 12.58);
     }
 
     public function test_log_food_requires_authentication(): void

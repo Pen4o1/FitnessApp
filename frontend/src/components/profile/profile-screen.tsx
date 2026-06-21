@@ -20,6 +20,7 @@ import { OptionChipGroup } from '@/components/profile/option-chip-group';
 import { TargetPreviewCard } from '@/components/profile/target-preview-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ProfileSkeleton } from '@/components/ui/profile-skeleton';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
@@ -227,13 +228,7 @@ export function ProfileScreen() {
   }
 
   if (isLoading && !user) {
-    return (
-      <ThemedView style={styles.container}>
-        <SafeAreaView style={styles.centeredState} edges={['top']}>
-          <ActivityIndicator color={theme.accent} size="large" />
-        </SafeAreaView>
-      </ThemedView>
-    );
+    return <ProfileSkeleton />;
   }
 
   return (

@@ -202,8 +202,14 @@ export type LogFoodPayload = {
   fat_g_per_base: number;
 };
 
-export async function logFood(payload: LogFoodPayload): Promise<FoodLogItem> {
-  return apiFetch<FoodLogItem>('/api/foods/log', {
+export type LogFoodResponse = {
+  item: FoodLogItem;
+  consumed: DailySummary['consumed'];
+  remaining: DailySummary['remaining'];
+};
+
+export async function logFood(payload: LogFoodPayload): Promise<LogFoodResponse> {
+  return apiFetch<LogFoodResponse>('/api/foods/log', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

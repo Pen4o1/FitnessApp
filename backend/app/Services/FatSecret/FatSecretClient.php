@@ -55,11 +55,38 @@ class FatSecretClient
     public function findFoodByBarcode(string $barcode): array
     {
         $regions = $this->barcodeRegionResolver->regionsForBarcode($barcode);
+
+        if ($regions === []) {
+            throw new FatSecretFoodNotFoundException('No food item detected for barcode.');
+        }
+
+        if (count($regions) === 1) {
+            return $this->findFoodByBarcodeInRegion($barcode, $regions[0]);
+        }
+
+        $token = $this->getAccessToken();
+        $responses = Http::pool(function ($pool) use ($barcode, $regions, $token): void {
+            foreach ($regions as $region) {
+                $pool->as($region)
+                    ->withToken($token)
+                    ->acceptJson()
+                    ->get($this->apiUrl('food/barcode/find-by-id/v2'), [
+                        'barcode' => $barcode,
+                        'format' => 'json',
+                        'flag_default_serving' => 'true',
+                        'include_food_attributes' => 'true',
+                        'region' => $region,
+                    ]);
+            }
+        });
+
         $lastNotFound = null;
 
         foreach ($regions as $region) {
+            $response = $responses[$region];
+
             try {
-                return $this->findFoodByBarcodeInRegion($barcode, $region);
+                return $this->parseBarcodeResponse($response);
             } catch (FatSecretFoodNotFoundException $exception) {
                 $lastNotFound = $exception;
             }
@@ -71,18 +98,8 @@ class FatSecretClient
     /**
      * @return array<string, mixed>
      */
-    private function findFoodByBarcodeInRegion(string $barcode, string $region): array
+    private function parseBarcodeResponse(\Illuminate\Http\Client\Response $response): array
     {
-        $response = Http::withToken($this->getAccessToken())
-            ->acceptJson()
-            ->get($this->apiUrl('food/barcode/find-by-id/v2'), [
-                'barcode' => $barcode,
-                'format' => 'json',
-                'flag_default_serving' => 'true',
-                'include_food_attributes' => 'true',
-                'region' => $region,
-            ]);
-
         $payload = $response->json();
 
         if (is_array($payload)) {
@@ -110,6 +127,24 @@ class FatSecretClient
         }
 
         return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function findFoodByBarcodeInRegion(string $barcode, string $region): array
+    {
+        $response = Http::withToken($this->getAccessToken())
+            ->acceptJson()
+            ->get($this->apiUrl('food/barcode/find-by-id/v2'), [
+                'barcode' => $barcode,
+                'format' => 'json',
+                'flag_default_serving' => 'true',
+                'include_food_attributes' => 'true',
+                'region' => $region,
+            ]);
+
+        return $this->parseBarcodeResponse($response);
     }
 
     /**
@@ -178,6 +213,58 @@ class FatSecretClient
         }
 
         return $payload;
+    }
+
+    /**
+     * @param  list<string>  $recipeIds
+     * @return array<string, array<string, mixed>>
+     */
+    public function getRecipes(array $recipeIds): array
+    {
+        $recipeIds = array_values(array_unique(array_filter(
+            $recipeIds,
+            fn (mixed $id): bool => is_string($id) && $id !== '',
+        )));
+
+        if ($recipeIds === []) {
+            return [];
+        }
+
+        if (count($recipeIds) === 1) {
+            return [$recipeIds[0] => $this->getRecipe($recipeIds[0])];
+        }
+
+        $token = $this->getAccessToken();
+        $responses = Http::pool(function ($pool) use ($recipeIds, $token): void {
+            foreach ($recipeIds as $recipeId) {
+                $pool->as($recipeId)
+                    ->withToken($token)
+                    ->acceptJson()
+                    ->get($this->apiUrl('recipe/v2'), [
+                        'recipe_id' => $recipeId,
+                        'format' => 'json',
+                        'region' => config('services.fatsecret.region'),
+                    ]);
+            }
+        });
+
+        $results = [];
+
+        foreach ($recipeIds as $recipeId) {
+            $response = $responses[$recipeId];
+
+            if (! $response->successful()) {
+                continue;
+            }
+
+            $payload = $response->json();
+
+            if (is_array($payload)) {
+                $results[$recipeId] = $payload;
+            }
+        }
+
+        return $results;
     }
 
     private function getAccessToken(): string

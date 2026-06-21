@@ -99,6 +99,48 @@ class RecipeService
     }
 
     /**
+     * @param  list<string>  $recipeIds
+     * @return array<string, array{
+     *     recipe_id: string,
+     *     recipe_name: string,
+     *     description: string|null,
+     *     image_url: string|null,
+     *     number_of_servings: float|null,
+     *     grams_per_portion: float|null,
+     *     prep_time_min: int|null,
+     *     cooking_time_min: int|null,
+     *     calories: int,
+     *     protein_g: float,
+     *     carbs_g: float,
+     *     fat_g: float,
+     *     ingredients: list<string>,
+     *     recipe_types: list<string>,
+     *     directions: list<array{number: int, text: string}>
+     * }>
+     */
+    public function getMany(array $recipeIds): array
+    {
+        $responses = $this->fatSecretClient->getRecipes($recipeIds);
+        $details = [];
+
+        foreach ($responses as $recipeId => $response) {
+            $recipe = data_get($response, 'recipe');
+
+            if (! is_array($recipe)) {
+                continue;
+            }
+
+            $normalized = $this->normalizeDetail($recipe);
+
+            if ($normalized !== null) {
+                $details[$recipeId] = $normalized;
+            }
+        }
+
+        return $details;
+    }
+
+    /**
      * @param  array<string, mixed>  $recipe
      * @return array{
      *     recipe_id: string,

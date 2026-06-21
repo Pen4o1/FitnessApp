@@ -9,7 +9,7 @@ use App\Http\Requests\FoodBarcodeScanRequest;
 use App\Http\Requests\FoodSearchRequest;
 use App\Http\Requests\StoreFoodLogRequest;
 use App\Http\Resources\FoodBarcodeScanResource;
-use App\Http\Resources\FoodLogItemResource;
+use App\Http\Resources\FoodLogResponseResource;
 use App\Http\Resources\FoodSearchResultResource;
 use App\Models\User;
 use App\Services\DailyLogService;
@@ -76,8 +76,13 @@ class FoodController extends Controller
         $user = $request->user();
 
         $foodLogItem = $this->dailyLogService->logFood($user, $request->validated());
+        $summary = $this->dailyLogService->getSummary($user, $request->validated('date'));
 
-        return (new FoodLogItemResource($foodLogItem))
+        return (new FoodLogResponseResource([
+            'item' => $foodLogItem,
+            'consumed' => $summary['consumed'],
+            'remaining' => $summary['remaining'],
+        ]))
             ->response()
             ->setStatusCode(201);
     }

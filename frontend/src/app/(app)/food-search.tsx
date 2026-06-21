@@ -22,6 +22,7 @@ import {
 import { FoodSearchResultRow } from '@/components/food-search/food-search-result-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { FoodSearchSkeleton } from '@/components/ui/food-search-skeleton';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useFoodSearch } from '@/hooks/use-food-search';
 import { useTheme } from '@/hooks/use-theme';
@@ -68,11 +69,7 @@ export default function FoodSearchScreen() {
     }
 
     if (isLoading) {
-      return (
-        <View style={styles.centeredState}>
-          <ActivityIndicator color={theme.accent} />
-        </View>
-      );
+      return <FoodSearchSkeleton />;
     }
 
     if (error) {

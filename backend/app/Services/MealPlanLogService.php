@@ -17,6 +17,8 @@ class MealPlanLogService
      */
     public function logDishesToDiary(User $user, string $date, array $plan): void
     {
+        $payloads = [];
+
         foreach ($plan['meals'] as $meal) {
             if (! is_array($meal)) {
                 continue;
@@ -34,9 +36,11 @@ class MealPlanLogService
                     continue;
                 }
 
-                $this->dailyLogService->logFood($user, $this->dishToLogPayload($dish, $mealType, $date));
+                $payloads[] = $this->dishToLogPayload($dish, $mealType, $date);
             }
         }
+
+        $this->dailyLogService->logFoodBatch($user, $date, $payloads);
     }
 
     /**

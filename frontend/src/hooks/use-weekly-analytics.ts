@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { getWeeklyAnalytics } from '@/lib/api';
+import { queryKeys } from '@/lib/query-keys';
 import type { WeeklyDaySummary } from '@/types/analytics';
 
 type UseWeeklyAnalyticsResult = {
-  days: WeeklyDaySummary[] | null;
+  days: WeeklyDaySummary[] | undefined;
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
@@ -12,25 +13,18 @@ type UseWeeklyAnalyticsResult = {
 };
 
 export function useWeeklyAnalytics(): UseWeeklyAnalyticsResult {
-  const [days, setDays] = useState<WeeklyDaySummary[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: queryKeys.weeklyAnalytics(),
+    queryFn: getWeeklyAnalytics,
+  });
 
-  const refresh = useCallback(async () => {
-    setError(null);
-    setIsRefreshing(true);
-
-    try {
-      const data = await getWeeklyAnalytics();
-      setDays(data);
-    } catch {
-      setError('Could not load your weekly analytics.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  return { days, isLoading, isRefreshing, error, refresh };
+  return {
+    days: query.data,
+    isLoading: query.isLoading,
+    isRefreshing: query.isRefetching && !query.isLoading,
+    error: query.error ? 'Could not load your weekly analytics.' : null,
+    refresh: async () => {
+      await query.refetch();
+    },
+  };
 }

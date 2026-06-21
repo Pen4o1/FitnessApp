@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
   Modal,
   Platform,
@@ -15,8 +16,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useLogFoodMutation } from '@/hooks/use-log-food-mutation';
 import { useTheme } from '@/hooks/use-theme';
-import { ApiError, logFood, type LogFoodPayload } from '@/lib/api';
+import { ApiError, type LogFoodPayload } from '@/lib/api';
 import {
   MEAL_TYPE_LABELS,
   scaleMacrosFromBase,
@@ -60,11 +62,12 @@ export function AddFoodSheet({
 }: AddFoodSheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const logFoodMutation = useLogFoodMutation();
   const [selectedServingId, setSelectedServingId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('100');
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const isSubmitting = logFoodMutation.isPending;
 
   const selectedServing = useMemo(() => {
     if (!food) {
@@ -150,14 +153,13 @@ export function AddFoodSheet({
     onClose();
   }
 
-  async function handleSubmit() {
+  function handleSubmit() {
     if (!food || !selectedServing || !isValidQuantity) {
       setError('Enter a valid amount.');
       return;
     }
 
     setError(null);
-    setIsSubmitting(true);
 
     const payload: LogFoodPayload = {
       date,
@@ -176,20 +178,18 @@ export function AddFoodSheet({
       fat_g_per_base: selectedServing.fat_g,
     };
 
-    try {
-      await logFood(payload);
-      setSelectedServingId(null);
-      setQuantity('100');
-      onAdded();
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Could not add food. Please try again.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    logFoodMutation.mutate(payload, {
+      onError: (err) => {
+        const message =
+          err instanceof ApiError ? err.message : 'Could not add food. Please try again.';
+
+        Alert.alert('Could not add food', message);
+      },
+    });
+
+    setSelectedServingId(null);
+    setQuantity('100');
+    onAdded();
   }
 
   if (!food || !selectedServing) {

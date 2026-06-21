@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { PreferenceToggleCard } from '@/components/profile/preference-toggle-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { DietaryPreferencesSkeleton } from '@/components/ui/dietary-preferences-skeleton';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, getUserPreferences, updateUserPreferences } from '@/lib/api';
@@ -130,16 +131,7 @@ export function DietaryPreferencesSection() {
   }
 
   if (isLoading) {
-    return (
-      <ThemedView type="backgroundElement" style={styles.section}>
-        <View style={styles.loadingState}>
-          <ActivityIndicator color={theme.accent} />
-          <ThemedText themeColor="textSecondary" type="small">
-            Loading dietary preferences...
-          </ThemedText>
-        </View>
-      </ThemedView>
-    );
+    return <DietaryPreferencesSkeleton />;
   }
 
   return (

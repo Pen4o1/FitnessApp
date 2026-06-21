@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,11 +9,15 @@ import { MacroProgressBar } from '@/components/dashboard/macro-progress-bar';
 import { MealSection } from '@/components/dashboard/meal-section';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { DashboardSkeleton } from '@/components/ui/dashboard-skeleton';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useDailySummary } from '@/hooks/use-daily-summary';
 import { useTheme } from '@/hooks/use-theme';
 import { addDays, isToday, todayDateString } from '@/lib/date';
+import { getDailySummary } from '@/lib/api';
+import { queryClient } from '@/lib/query-client';
+import { queryKeys } from '@/lib/query-keys';
 import type { MealType } from '@/types/nutrition';
 
 function formatHeaderDate(dateString: string): string {
@@ -30,14 +34,24 @@ export function DashboardScreen() {
   const theme = useTheme();
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(todayDateString);
-  const { summary, isLoading, isRefreshing, error, refresh } = useDailySummary(selectedDate);
+  const { summary, isLoading, isFetching, isRefreshing, error, refresh } = useDailySummary(selectedDate);
   const viewingToday = isToday(selectedDate);
+  const isLoadingNewDate = isFetching && !isLoading;
 
-  useFocusEffect(
-    useCallback(() => {
-      void refresh();
-    }, [refresh]),
-  );
+  useEffect(() => {
+    if (!summary) {
+      return;
+    }
+
+    for (const offset of [-1, 1]) {
+      const adjacentDate = addDays(selectedDate, offset);
+
+      void queryClient.prefetchQuery({
+        queryKey: queryKeys.dailySummary(adjacentDate),
+        queryFn: () => getDailySummary(adjacentDate),
+      });
+    }
+  }, [selectedDate, summary]);
 
   function handlePreviousDay() {
     setSelectedDate((currentDate) => addDays(currentDate, -1));
@@ -67,13 +81,7 @@ export function DashboardScreen() {
   }
 
   if (isLoading && !summary) {
-    return (
-      <ThemedView style={styles.container}>
-        <SafeAreaView style={styles.loadingState} edges={['top']}>
-          <ActivityIndicator color={theme.accent} size="large" />
-        </SafeAreaView>
-      </ThemedView>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!summary) {
@@ -206,16 +214,23 @@ export function DashboardScreen() {
           </ThemedView>
 
           <View style={styles.mealsSection}>
-            <ThemedText type="smallBold" style={styles.mealsTitle}>
-              {viewingToday ? "Today's meals" : 'Meals'}
-            </ThemedText>
-            {summary.meals.map((meal) => (
-              <MealSection
-                key={meal.meal_type}
-                meal={meal}
-                onAddPress={() => handleAddFood(meal.meal_type)}
-              />
-            ))}
+            <View style={styles.mealsTitleRow}>
+              <ThemedText type="smallBold" style={styles.mealsTitle}>
+                {viewingToday ? "Today's meals" : 'Meals'}
+              </ThemedText>
+              {isLoadingNewDate ? (
+                <ActivityIndicator color={theme.accent} size="small" />
+              ) : null}
+            </View>
+            <View style={[styles.mealsContent, isLoadingNewDate && styles.mealsContentFetching]}>
+              {summary.meals.map((meal) => (
+                <MealSection
+                  key={meal.meal_type}
+                  meal={meal}
+                  onAddPress={() => handleAddFood(meal.meal_type)}
+                />
+              ))}
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -322,8 +337,19 @@ const styles = StyleSheet.create({
   mealsSection: {
     gap: Spacing.three,
   },
+  mealsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
   mealsTitle: {
     fontSize: 16,
+  },
+  mealsContent: {
+    gap: Spacing.three,
+  },
+  mealsContentFetching: {
+    opacity: 0.55,
   },
   loadingState: {
     flex: 1,

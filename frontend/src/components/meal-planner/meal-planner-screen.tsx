@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,7 +19,17 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useMealPlan } from '@/hooks/use-meal-plan';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, logMealPlanToDiary, saveMealPlan } from '@/lib/api';
+import { queryClient } from '@/lib/query-client';
+import { queryKeys } from '@/lib/query-keys';
 import type { MealPlan } from '@/types/meal-plan';
+
+const GENERATION_MESSAGES = [
+  'Finding breakfast ideas...',
+  'Building lunch options...',
+  'Planning dinner...',
+  'Adding snacks and sides...',
+  'Finalizing your plan...',
+];
 
 type MealPlannerScreenProps = {
   date: string;
@@ -46,8 +56,22 @@ export function MealPlannerScreen({ date }: MealPlannerScreenProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoggingToDiary, setIsLoggingToDiary] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [generationMessageIndex, setGenerationMessageIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setGenerationMessageIndex((current) => (current + 1) % GENERATION_MESSAGES.length);
+    }, 2200);
+
+    return () => clearInterval(interval);
+  }, [isGenerating]);
 
   async function handleGenerate() {
+    setGenerationMessageIndex(0);
     await generate(mealsCount);
   }
 
@@ -92,6 +116,7 @@ export function MealPlannerScreen({ date }: MealPlannerScreenProps) {
 
     try {
       await logMealPlanToDiary(date, plan);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dailySummary(date) });
 
       Alert.alert('Logged', 'Calories were added to your diary for this day.', [
         {
@@ -164,7 +189,7 @@ export function MealPlannerScreen({ date }: MealPlannerScreenProps) {
             <View style={styles.loadingState}>
               <ActivityIndicator color={theme.neonGreen} size="large" />
               <ThemedText themeColor="textSecondary" style={styles.loadingText}>
-                Building your plan...
+                {GENERATION_MESSAGES[generationMessageIndex]}
               </ThemedText>
             </View>
           ) : plan ? (
