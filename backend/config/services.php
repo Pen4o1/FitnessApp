@@ -44,6 +44,7 @@ return [
             static fn (string $region): string => strtoupper(trim($region)),
             explode(',', (string) env('FATSECRET_BARCODE_REGIONS', '')),
         ))),
+        'barcode_batch_size' => (int) env('FATSECRET_BARCODE_BATCH_SIZE', 8),
         'token_url' => 'https://oauth.fatsecret.com/connect/token',
         'api_base_url' => 'https://platform.fatsecret.com/rest',
     ],

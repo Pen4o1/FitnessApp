@@ -5,6 +5,7 @@ namespace App\Services\FatSecret;
 use App\Exceptions\FatSecretApiException;
 use App\Exceptions\FatSecretFoodNotFoundException;
 use App\Support\BarcodeRegionResolver;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -64,31 +65,42 @@ class FatSecretClient
             return $this->findFoodByBarcodeInRegion($barcode, $regions[0]);
         }
 
-        $token = $this->getAccessToken();
-        $responses = Http::pool(function ($pool) use ($barcode, $regions, $token): void {
-            foreach ($regions as $region) {
-                $pool->as($region)
-                    ->withToken($token)
-                    ->acceptJson()
-                    ->get($this->apiUrl('food/barcode/find-by-id/v2'), [
-                        'barcode' => $barcode,
-                        'format' => 'json',
-                        'flag_default_serving' => 'true',
-                        'include_food_attributes' => 'true',
-                        'region' => $region,
-                    ]);
-            }
-        });
-
+        $batchSize = max(1, (int) config('fatsecret_barcode.lookup_batch_size', 8));
         $lastNotFound = null;
 
-        foreach ($regions as $region) {
-            $response = $responses[$region];
+        foreach (array_chunk($regions, $batchSize) as $batch) {
+            if (count($batch) === 1) {
+                try {
+                    return $this->findFoodByBarcodeInRegion($barcode, $batch[0]);
+                } catch (FatSecretFoodNotFoundException $exception) {
+                    $lastNotFound = $exception;
 
-            try {
-                return $this->parseBarcodeResponse($response);
-            } catch (FatSecretFoodNotFoundException $exception) {
-                $lastNotFound = $exception;
+                    continue;
+                }
+            }
+
+            $token = $this->getAccessToken();
+            $responses = Http::pool(function ($pool) use ($barcode, $batch, $token): void {
+                foreach ($batch as $region) {
+                    $pool->as($region)
+                        ->withToken($token)
+                        ->acceptJson()
+                        ->get($this->apiUrl('food/barcode/find-by-id/v2'), [
+                            'barcode' => $barcode,
+                            'format' => 'json',
+                            'flag_default_serving' => 'true',
+                            'include_food_attributes' => 'true',
+                            'region' => $region,
+                        ]);
+                }
+            });
+
+            foreach ($batch as $region) {
+                try {
+                    return $this->parseBarcodeResponse($responses[$region]);
+                } catch (FatSecretFoodNotFoundException $exception) {
+                    $lastNotFound = $exception;
+                }
             }
         }
 
@@ -98,7 +110,7 @@ class FatSecretClient
     /**
      * @return array<string, mixed>
      */
-    private function parseBarcodeResponse(\Illuminate\Http\Client\Response $response): array
+    private function parseBarcodeResponse(Response $response): array
     {
         $payload = $response->json();
 
